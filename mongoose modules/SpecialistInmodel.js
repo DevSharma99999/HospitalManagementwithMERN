@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const specialistInSchema = new mongoose.Schema({
     name: { type: String, unique: true, required: true },
     category: {
-        type: string
+        type: String
     },
     keywords: {
         type: [String],
@@ -11,4 +11,4 @@ const specialistInSchema = new mongoose.Schema({
         index: true
     }
 });
-export const SpecialistIn = mongoose.model("SpecialistIn", specialistInSchema);
+export const SpecilisationIN = mongoose.model("SpecilisationIN", specialistInSchema);

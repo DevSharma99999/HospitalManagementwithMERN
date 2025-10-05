@@ -1,6 +1,6 @@
 
 import { doctor } from '../mongoose modules/doctormodule.js';
-
+import { SpecilisationIN } from '../mongoose modules/SpecialistInmodel.js';
 export const doctorDetails = async (req, res, next) => {
     const firstName = req.body.firstName;
     const lastName = req.body.lastName;
@@ -13,6 +13,8 @@ export const doctorDetails = async (req, res, next) => {
     const phone = parseInt(req.body.phone);
     const password = (req.body.password);
     console.log(req.body);
+
+     const specialtyName = specialistIN; 
    const missingStringField = !firstName || !lastName || !medical_licence_number || 
                                !specialistIN || !qualifications || !clinic_address || !password;
     
@@ -32,11 +34,22 @@ export const doctorDetails = async (req, res, next) => {
                 message: "doctor have already register with these inputs"
             });
         }
+        const specialtyDocument = await SpecilisationIN.findOne({ name: specialtyName });
+          if (!specialtyDocument) {
+            return res.status(400).json({
+                success: false,
+                message: `Specialty '${specialistIN}' not found. Please choose a valid specialty.`
+            });
+        }
+
         const newDoctor = new doctor({
             firstName, lastName,
-            medical_licence_number, specialistIN, qualifications,
+            medical_licence_number, 
+            specialistID: specialtyDocument._id,
+            specialistIN, qualifications,
             experience_years, clinic_address, consultancyFee, phone,password
         });
+        console.log("hello");
         newDoctor.user_type = "doctor";
         await newDoctor.save();
         const accessToken = newDoctor.generateDoctorAccessToken();

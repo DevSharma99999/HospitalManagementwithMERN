@@ -24,7 +24,13 @@ const doctorSchema = new mongoose.Schema({
    },
    specialistIN: {
       type: String,
+      enum: ['Cardiology', 'Neurology', 'Dermatology'],
       required: true
+   },
+   specialistID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SpecilisationIN",
+      required:true
    },
    qualifications: {
       type: String
@@ -56,16 +62,16 @@ const doctorSchema = new mongoose.Schema({
       required: true,
       select: false
    },
-   is_profile_complete:{
-      type:Boolean,
-      default:false
+   is_profile_complete: {
+      type: Boolean,
+      default: false
    }
 }, { timestamps: true }
 )
 doctorSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+   if (!this.isModified("password")) return next();
+   this.password = await bcrypt.hash(this.password, 10);
+   next();
 })
 doctorSchema.methods.generateDoctorAccessToken = function () {
    return jwt.sign(

@@ -12,7 +12,15 @@
         <input name="firstName" placeholder="firstName">
         <input name="lastName" placeholder="lastName">
         <input name="medical_licence_number" placeholder="medical_licence_number">
-        <input name="specialistIN" placeholder="specialistIN">
+
+        <label for="specialty">Select Specialty:</label>
+
+        <select name="specialistIN" id="specialty" required>
+            <option value="" disabled selected>-- Choose a specialty --</option>
+            <option value="Cardiology">Cardiology</option>
+            <option value="Neurology">Neurology</option>
+            <option value="Dermatology">Dermatology</option>
+        </select>
         <input name="qualifications" placeholder="qualifications">
         <input name="experience_years" placeholder="experience_years">
         <input name="clinic_address" placeholder="clinic_address">
