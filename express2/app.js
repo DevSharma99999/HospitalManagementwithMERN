@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -8,8 +7,6 @@ import userway from './routes/userSignup.js';
 import adminWay from './routes/control.userregister.js';
 import wrongWay from './routes/page 404.js';
 import homeWay from './routes/home.js';
-import { searchFileWay } from './routes/searchdoctorfile.js';
-import { searchWay } from './routes/searchroute.js';
 import { login } from './routes/login.js';
 import { loginsuccessful } from './routes/loginsuccesful.js';
 import { doctorloginfile } from './routes/doctorloginfile.js';
@@ -30,8 +27,6 @@ app.use(doctorloginfile);
 app.use(doctorloginsuccessful);
 app.use(doctorRegisterfile);
 app.use(doctorform);
-app.use(searchFileWay);
-app.use(searchWay);
 app.use(wrongWay);
 
 mongoose.connect(process.env.url).then(() => {
@@ -40,6 +35,6 @@ mongoose.connect(process.env.url).then(() => {
     console.log(`http://localhost:${process.env.port}`);
   });
 }).catch(err => {
-  console.log("errr", err);
+  console.log("errror", err);
   process.exit(1);
 });

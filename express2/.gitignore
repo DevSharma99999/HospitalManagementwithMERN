@@ -1,0 +1,88 @@
+## Windows / OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.log
+*.tmp
+*.cache
+~$*
+*~
+
+## Visual Studio / .NET / C# / VB / F#
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.vsp
+*.vspscc
+*.vssscc
+
+# Build results
+[Bb]in/
+[Oo]bj/
+Build/
+Builds/
+*.dll
+*.exe
+*.app
+*.appx
+*.appxbundle
+*.msi
+*.msix
+
+# Visual Studio 2015+ cache/options folder
+.vs/
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+*.snupkg
+package/
+packages/
+.nuget/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Publish / deployment
+publish/
+*.Publish.xml
+*.pubxml
+*.publishsettings
+
+# Web / front-end stuff (if relevant)
+node_modules/
+bower_components/
+dist/
+build/
+
+# Others
+*.psess
+*.vspx
+*.pdb
+*.cache
+*.pidb
+*.scc
+*.sdf
+*.dbmdl
+*.dbproj.*
+*.bak
+*.backup
+*.log
+
+# Windows image and system files
+*.png.cache
+Thumbs.db
+ehthumbs.db
+
+# Ignore environment / secret files
+.env
+.env.local
+*.key
+*.pem
+secrets.json
