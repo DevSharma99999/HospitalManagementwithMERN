@@ -71,11 +71,11 @@ app.use(patientbookingWay);
 app.use(patientDashboardWay)
 app.use(wrongWay);
 
-
+const p=process.env.port || 3000;
 mongoose.connect(process.env.url).then(() => {
   console.log("mongoose connected succesfully");
   app.listen(process.env.port, () => {
-    console.log(`http://localhost:${process.env.port}`);
+    console.log(`http://localhost:${p}`);
  });
 }).catch(err => {
   console.log("errr", err);
