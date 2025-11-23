@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl border border-blue-200">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">Doctor Access</h2>
+        <p class="text-sm text-gray-500 mb-8 text-center">Sign in with your Medical License Number.</p>
+
+        <form action="/doctor-login" method="POST" class="space-y-6">
+            
+            <div id="status-message" class="mb-4 text-center"></div>
+
+            <div>
+                <label for="medical_licence_number" class="block text-sm font-medium text-gray-700">Medical License Number</label>
+                <input 
+                    type="text" 
+                    id="medical_licence_number" 
+                    name="medical_licence_number" 
+                    placeholder="Enter Medical License Number" 
+                    required
+                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                >
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Enter Password" 
+                    required
+                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                >
+            </div>
+            
+            <div class="flex justify-end">
+                <a href="/doctor-forgot-password" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                    Forgot Password?
+                </a>
+            </div>
+            <button type="submit"
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                Login
+            </button>
+        </form>
+    </div>
+</body>
+<script src="../js/client.js"></script>
+</html>

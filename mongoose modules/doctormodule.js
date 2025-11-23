@@ -24,7 +24,7 @@ const doctorSchema = new mongoose.Schema({
    },
    specialistIN: {
       type: String,
-      enum: ['Cardiology', 'Neurology', 'Dermatology'],
+      enum: ['Cardiology', 'Neurology', 'Dermatology','Pediatrics', 'Orthopedics', 'Obstetrics and Gynecology','General Physician'],
       required: true
    },
    specialistID: {
@@ -50,18 +50,20 @@ const doctorSchema = new mongoose.Schema({
       type: String //cloud url
    },
    phone: {
-      type: Number,
+      type: String,
       required: true,
    },
    user_type: {
       type: String,
-      default: "user"
+      default: "doctor"
    },
    password: {
       type: String,
       required: true,
       select: false
    },
+   resetPasswordToken: String,
+resetPasswordExpires: Date,
    is_profile_complete: {
       type: Boolean,
       default: false

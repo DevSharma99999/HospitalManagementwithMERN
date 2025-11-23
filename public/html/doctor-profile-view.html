@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Profile View & Edit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="min-h-screen bg-gray-100 p-8">
+
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">🩺 My Profile Details</h1>
+        
+        <div id="status" class="mb-4 text-center text-sm font-medium">Loading profile...</div>
+
+        <form id="profile-form"> 
+            <div id="profile-container" class="space-y-4">
+                </div>
+
+            <div class="pt-6 border-t mt-6 text-center">
+                <button type="submit" id="save-button" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150">Save Changes</button>
+            </div>
+        </form>
+        <div class="mt-8 text-center">
+            <a href="/doctor" class="text-blue-600 hover:text-blue-800 font-medium">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchProfile); // 🛑 FIX 2: Trigger fetch on page load
+
+        // Helper function for non-editable fields (License, Specialty)
+        function createField(label, value) {
+            return `
+                <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span class="text-sm font-medium text-gray-500">${label}:</span>
+                    <span class="text-sm font-semibold text-gray-800">${value}</span>
+                </div>
+            `;
+        }
+        
+        // Function to generate an editable input field
+        function createInputField(label, name, value, type = 'text') {
+             // Ensure value is never null/undefined
+            const displayValue = value === null || value === undefined ? '' : value; 
+            return `
+                <div class="py-2 border-b border-gray-100">
+                    <label for="${name}" class="block text-sm font-medium text-gray-500">${label}:</label>
+                    <input type="${type}" id="${name}" name="${name}" value="${displayValue}" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            `;
+        }
+
+        function displayProfile(data) {
+            const container = document.getElementById('profile-container');
+            container.innerHTML = `
+                ${createInputField('First Name', 'firstName', data.firstName)}
+                ${createInputField('Last Name', 'lastName', data.lastName)}
+                ${createInputField('Phone', 'phone', data.phone, 'tel')}
+                ${createInputField('Qualifications', 'qualifications', data.qualifications)}
+                ${createInputField('Experience (Yrs)', 'experience_years', data.experience_years, 'number')}
+                ${createInputField('Consultancy Fee', 'consultancyFee', data.consultancyFee, 'number')}
+                ${createInputField('Clinic Address', 'clinic_address', data.clinic_address)}
+                
+                ${createField('License No.', data.medical_licence_number)}
+                ${createField('Specialty', data.specialistIN)}
+            `;
+            
+            // 🛑 Add listener after content is injected 🛑
+            document.getElementById('profile-form').addEventListener('submit', handleProfileUpdate);
+        }
+        
+        async function fetchProfile() {
+            const statusDiv = document.getElementById('status');
+            const container = document.getElementById('profile-container');
+            const API_URL = '/api/doctor/profile-data'; 
+
+            try {
+                const response = await fetch(API_URL);
+
+                if (response.status === 401 || response.status === 403) {
+                    statusDiv.innerHTML = '<p class="text-red-600">Session expired or unauthorized. Please <a href="/doctor-login" class="underline">log in</a>.</p>';
+                    return;
+                }
+                
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    displayProfile(result.data);
+                    statusDiv.textContent = 'Profile is ready for editing.';
+                    statusDiv.classList.add('text-green-600');
+                } else {
+                    statusDiv.innerHTML = `<p class="text-red-600">Error: ${result.message || 'No profile data found.'}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                statusDiv.innerHTML = '<p class="text-red-600">Network error. Could not connect to server.</p>';
+            }
+        }
+        
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const form = e.target;
+            const statusDiv = document.getElementById('status');
+            
+            // Serialize form data
+            const formData = Object.fromEntries(new FormData(form).entries());
+
+            try {
+                const response = await fetch('/api/doctor/profile-data', { // 🛑 Endpoint for PUT 🛑
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.innerHTML = '<p class="text-green-600 font-bold">Profile updated successfully!</p>';
+                    // Re-render the profile data to reflect any server-side formatting
+                    displayProfile(result.profile); 
+                } else {
+                    statusDiv.innerHTML = `<p class="text-red-600 font-bold">Update Failed: ${result.message || 'Server error.'}</p>`;
+                }
+
+            } catch (error) {
+                statusDiv.innerHTML = '<p class="text-red-600 font-bold">Network error during update.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

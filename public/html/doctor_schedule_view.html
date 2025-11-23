@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment | Doctor Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Highlight booked slots */
+        .slot-booked {
+            background-color: #fca5a5;
+            /* Red-300 */
+            color: #b91c1c;
+            /* Red-700 */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Highlight available slots */
+        .slot-available {
+            background-color: #a7f3d0;
+            /* Green-200 */
+            color: #065f46;
+            /* Green-700 */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .slot-available:hover {
+            background-color: #6ee7b7;
+            /* Green-300 */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+
+    <div class="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-green-100">
+
+        <header class="mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-green-700">Book Appointment</h1>
+            <p id="doctor-name" class="text-xl text-gray-600 mt-1">Schedule for Doctor...</p>
+        </header>
+
+        <div id="status-message" class="text-center font-medium mb-4 p-3 rounded-md bg-indigo-100 text-indigo-700">
+            Loading doctor's weekly availability...
+        </div>
+
+        <div id="schedule-container" class="space-y-6">
+        </div>
+
+        <form id="booking-form" style="display: none;">
+            <input type="hidden" name="doctorId" id="booking-doctor-id">
+            <input type="hidden" name="appointmentDate" id="booking-date">
+            <input type="hidden" name="timeSlot" id="booking-slot">
+        </form>
+
+    </div>
+
+    <script>
+        // Maps day number (1-7, where 1 is Monday) to name
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Extract Doctor ID from the current URL
+            const pathSegments = window.location.pathname.split('/');
+            // Assumes URL is /patient/book-appointment/DOCTOR_ID
+            const doctorId = pathSegments[pathSegments.length - 1];
+
+            if (doctorId && doctorId.length > 10) {
+                document.getElementById('booking-doctor-id').value = doctorId;
+                fetchDoctorSchedule(doctorId);
+            } else {
+                displayStatus('Error: Doctor ID not found in the URL.', false);
+                document.getElementById('schedule-container').innerHTML = '';
+            }
+        });
+
+        // --- Utility Functions ---
+
+        const displayStatus = (message, isSuccess) => {
+            const statusDiv = document.getElementById('status-message');
+            if (!statusDiv) return;
+            statusDiv.textContent = message;
+            statusDiv.className = `font-medium mb-4 p-3 rounded-md ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+        };
+
+        // Helper to convert Date object to YYYY-MM-DD string
+        const toYYYYMMDD = (date) => date.toISOString().split('T')[0];
+
+        // --- Fetch and Render Schedule ---
+
+        async function fetchDoctorSchedule(id) {
+            try {
+                // Fetch the schedule (availability + existing bookings)
+                // You MUST create this server route: GET /api/patient/schedule/weekly/:doctorId
+                const response = await fetch(`/api/patient/schedule/weekly/${id}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success && result.data) {
+                    document.getElementById('doctor-name').textContent = `Schedule for Dr. ${result.data.doctorName || 'Unknown'}`;
+                    renderWeeklySchedule(result.data.schedule);
+                    displayStatus('Schedule loaded successfully. Select an available slot.', true);
+                } else {
+                    displayStatus(`Failed to load schedule: ${result.message || 'No schedule defined for this doctor.'}`, false);
+                }
+
+            } catch (error) {
+                console.error("Error fetching schedule:", error);
+                displayStatus('Network error while fetching schedule. Check server status.', false);
+            }
+        }
+        const timeToMinutes = (timeString) => {
+            // Example: timeString is "09:00-10:00"
+            const start = timeString.split('-')[0]; // Gets "09:00"
+            const [hours, minutes] = start.split(':').map(Number);
+            return hours * 60 + minutes;
+        };
+        function renderWeeklySchedule(schedule) {
+            const container = document.getElementById('schedule-container');
+            container.innerHTML = '';
+
+            if (!schedule || schedule.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No availability data found for the upcoming week.</p>';
+                return;
+            }
+
+            const timeSlots = Array.from(new Set(schedule.map(s => s.timeSlot))).sort((a, b) => {
+                // Compare 'a' against 'b' based on their starting time in minutes
+
+                const assumetime1 = timeToMinutes(a)
+                const assumetime2 = timeToMinutes(b)
+                if (assumetime1 < 9) assumetime1 = assumetime1 + 12;
+                if (assumetime2 < 9) assumetime2 = assumetime2 + 12;
+                return assumetime1 - assumetime2;
+            });
+            // console.log(timeSlots,"timeSlots");
+
+            let tableHTML = `
+                <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Slot</th>
+            `;
+
+            // Add day headers
+            const today = new Date();
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                weekDates.push(date);
+                tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">${dayNames[date.getDay()]} ${date.getDate()}/${date.getMonth() + 1}</th>`;
+            }
+
+            tableHTML += `
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+            `;
+
+            // Add rows for each time slot
+            timeSlots.forEach(slot => {
+                tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${slot}</td>`;
+
+                weekDates.forEach(date => {
+                    const dateString = toYYYYMMDD(date);
+                    const dayNum = date.getDay().toString(); // 0 for Sun, 1 for Mon, matches Mongoose day value (assuming your Mongoose schema uses 0-6 or 1-7)
+
+                    // Find the matching schedule entry
+                    const entry = schedule.find(s =>
+                        s.date === dateString && s.timeSlot === slot
+                    );
+                        console.log("this is entry :",entry,"and schedule",schedule);
+                    let cellClass = 'bg-gray-50 text-gray-400 cursor-default';
+                    let cellContent = 'N/A';
+                    let onClick = '';
+
+                    if (entry) {
+                        if (entry.status === 'booked') {
+                            cellClass = 'slot-booked';
+                            cellContent = 'Booked';
+                        } else if (entry.status === 'available') {
+                            cellClass = 'slot-available';
+                            cellContent = 'Available';
+                            onClick = `bookSlot('${dateString}', '${slot}')`;
+                        }
+                    }
+
+                    tableHTML += `
+                        <td class="px-2 py-2 text-center text-sm border-l border-r ${cellClass}" 
+                            onclick="${onClick}">
+                            ${cellContent}
+                        </td>
+                    `;
+                });
+
+                tableHTML += `</tr>`;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHTML;
+        }
+
+        // --- Booking Submission Handler ---
+
+        function bookSlot(date, slot) {
+            if (!confirm(`Confirm booking for ${date} at ${slot}?`)) {
+                return;
+            }
+
+            const doctorId = document.getElementById('booking-doctor-id').value;
+            document.getElementById('booking-date').value = date;
+            document.getElementById('booking-slot').value = slot;
+
+            displayStatus('Initiating booking...', false);
+
+            // Use the hidden form inputs to prepare the data
+            const bookingData = {
+                doctor_id: doctorId,
+                appointment_date: date,
+                timeSlot: slot
+            };
+
+            // Post to your appointment creation route
+            submitBooking(bookingData);
+        }
+
+        async function submitBooking(data) {
+            try {
+                // You must create this server route: POST /api/appointments/book
+                const response = await fetch('/api/appointments/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    displayStatus(`Booking confirmed! ${result.message}`, true);
+                    // Optional: Update the schedule table instantly or refresh the page
+                    // fetchDoctorSchedule(data.doctor_id); 
+
+                    // Redirect to patient's appointments summary page
+                    if (result.redirectUrl) {
+                        setTimeout(() => {
+                            window.location.replace(result.redirectUrl);
+                        }, 2000);
+                    }
+
+                } else {
+                    displayStatus(`Booking failed: ${result.message || 'Slot is no longer available.'}`, false);
+                }
+            } catch (error) {
+                console.error('Booking submission error:', error);
+                displayStatus('A network error occurred during booking.', false);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,8 +1,11 @@
 import jwt from 'jsonwebtoken'
-import { user } from '../mongoose modules/userdatamodule.js'
+import { patient } from '../mongoose modules/patientModule.js';
 
 export const verifyJWT = async (req,res,next)=>{
     try{
+        console.log("req.cookies:", req.cookies);
+console.log("Authorization header:", req.header('Authorization'));
+
         const token =req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ','');
         if(!token){
             return res.status(401).json({
@@ -12,7 +15,7 @@ export const verifyJWT = async (req,res,next)=>{
         }
         const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
 
-        const foundUser = await user.findById(decodedToken._id).select("-password");
+        const foundUser = await patient.findById(decodedToken._id).select("-email");
 if(!foundUser){
     return res.status(401).json({
         success:false,
@@ -20,6 +23,7 @@ if(!foundUser){
     });
 }
     req.user=foundUser;
+    console.log(req.user);
     next();
     }
     catch(error){

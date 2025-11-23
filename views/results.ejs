@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrition Plan for <%= healthProblem %> | AI Results</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        /* Custom styles for chat messages */
+        .message-container {
+            padding: 0.5rem 0;
+        }
+        .user-bubble {
+            background-color: #e0f2fe; /* Light blue */
+            color: #1e40af; /* Darker blue */
+            padding: 8px 12px;
+            border-radius: 15px 15px 5px 15px;
+            max-width: 80%;
+            margin-left: auto;
+            text-align: right;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .bot-bubble {
+            background-color: #d1fae5; /* Light green */
+            color: #065f46; /* Darker green */
+            padding: 8px 12px;
+            border-radius: 15px 15px 15px 5px;
+            max-width: 80%;
+            margin-right: auto;
+            text-align: left;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto space-y-10">
+
+        <!-- Header -->
+        <header class="text-center pb-4 border-b border-indigo-200">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-lime-700">
+                Your 7-Day Nutrition Plan
+            </h1>
+            <h2 class="text-xl text-gray-600 mt-2">
+                Recommendations for: <span class="font-semibold text-indigo-500">
+                    <%= healthProblem %>
+                </span>
+            </h2>
+        </header>
+
+        <!-- 1. Nutrition Plan Table -->
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Meal Schedule</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-indigo-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">
+                                Day
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">
+                                Recommended Meal/Food
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <% nutritionPlan.forEach((item, index)=> { %>
+                            <tr class="<%= index % 2 === 0 ? 'bg-white' : 'bg-gray-50' %> hover:bg-indigo-50 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                    <%= item.day %>
+                                </td>
+                                <td class="px-6 py-4 whitespace-normal text-gray-700">
+                                    <%= item.food %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. Interactive Nutrition Chat Bot -->
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                Ask the Nutrition Bot 💬
+            </h3>
+            <p class="text-sm text-gray-500 mb-4">Ask about diet tips, specific foods, or general health facts.</p>
+            
+            <!-- Chat Box -->
+            <div id="chatbox" class="h-80 bg-gray-50 border border-gray-300 p-3 rounded-lg overflow-y-scroll mb-4 space-y-3">
+                <!-- Messages will be appended here -->
+                <div class="message-container">
+                    <div class="bot-bubble">Hello! I'm your AI Nutritionist. Ask me anything about healthy eating!</div>
+                </div>
+            </div>
+
+            <!-- Input and Send Button -->
+            <div class="flex space-x-3">
+                <input id="userInput" type="text" placeholder="e.g., Is intermittent fasting safe?"
+                    class="flex-grow px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 transition" />
+                <button id="send-button"
+                    class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition duration-200">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Function is defined globally
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatbox = document.getElementById('chatbox');
+
+            // Add user message (FIXED: using backticks)
+            const userMsgElement = document.createElement('div');
+            userMsgElement.className = 'message-container';
+            userMsgElement.innerHTML = `<div class="user-bubble">${message}</div>`;
+            chatbox.appendChild(userMsgElement);
+
+
+            // Show a loading indicator
+            const loadingElement = document.createElement('div');
+            loadingElement.className = 'message-container bot-typing';
+            loadingElement.innerHTML = `<div class="bot-bubble animate-pulse">Bot is thinking...</div>`;
+            chatbox.appendChild(loadingElement);
+            chatbox.scrollTop = chatbox.scrollHeight;
+            input.value = '';
+            
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message
+                    })
+                });
+
+                const data = await res.json();
+                console.log("Backend replied:", data);
+                
+                // Remove loading indicator
+                loadingElement.remove();
+
+                // Format response into clean bullet points
+                // Replaces newlines with <br>• to ensure clean bullet formatting
+                let formatted = data.response
+                    .replace(/\*/g, '•') // replace asterisks with bullet dots
+                    .replace(/•\s*•/g, '•') // avoid double bullets
+                    .replace(/\n+/g, '<br>• '); // ensure each line starts with a bullet
+
+                // Add bullet at start if missing and clean up formatting
+                formatted = formatted.trim().startsWith('• ') ? formatted.trim() : `• ${formatted.trim()}`;
+                
+                const botMsgElement = document.createElement('div');
+                botMsgElement.className = 'message-container';
+                botMsgElement.innerHTML = `<div class="bot-bubble">${formatted}</div>`;
+                chatbox.appendChild(botMsgElement);
+
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                
+                // Remove loading indicator
+                loadingElement.remove();
+                
+                const errorElement = document.createElement('div');
+                errorElement.className = 'message-container';
+                errorElement.innerHTML = `<div class="bot-bubble text-red-600">Error: Could not reach the server or AI. Please try again.</div>`;
+                chatbox.appendChild(errorElement);
+            }
+
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        // Event Listener is used to safely attach the function after DOM loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const sendButton = document.getElementById('send-button');
+            const userInput = document.getElementById('userInput');
+
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+            }
+
+            // Optional: Allow sending on 'Enter' key press
+            if (userInput) {
+                userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // Prevent default form submit behavior
+                        sendMessage();
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

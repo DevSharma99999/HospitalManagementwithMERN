@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Appointments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-indigo-100">
+
+        <header class="mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-indigo-700">My Scheduled Appointments</h1>
+        </header>
+
+        <div id="status-message" class="text-center font-medium mb-4 p-3 rounded-md bg-indigo-100 text-indigo-700">
+            Fetching your appointments...
+        </div>
+
+        <div id="appointments-container" class="space-y-4">
+            <p id="no-appointments" class="text-gray-500 text-center hidden">You have no upcoming appointments.</p>
+        </div>
+    </div>
+
+<!-- //         document.addEventListener('DOMContentLoaded', fetchAppointments);
+
+//         const displayStatus = (message, isSuccess) => {
+//             const statusDiv = document.getElementById('status-message');
+//             if (!statusDiv) return;
+//             statusDiv.textContent = message;
+//             statusDiv.className = `font-medium mb-4 p-3 rounded-md ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+//         };
+
+//         async function fetchAppointments() {
+//             const container = document.getElementById('appointments-container');
+//             displayStatus('Loading appointments...', false);
+
+//             try {
+//                 // 🚨 Must create this API route on your server!
+//                 const response = await fetch('/api/patient/my-appointments', {
+//                     method: 'GET',
+//                     credentials: 'include'
+//                 });
+//                 const result = await response.json();
+
+//                 if (response.ok && result.success && result.data) {
+//                     if (result.data.length === 0) {
+//                         document.getElementById('no-appointments').classList.remove('hidden');
+//                         displayStatus('All clear! You have no upcoming appointments.', true);
+//                     } else {
+//                         renderAppointments(result.data, container);
+//                         displayStatus(`Found ${result.data.length} appointments.`, true);
+//                     }
+//                 } else {
+//                     displayStatus(`Error: ${result.message || 'Could not fetch appointments.'}`, false);
+//                 }
+//             } catch (error) {
+//                 console.error('Fetch error:', error);
+//                 displayStatus('A network error occurred while loading appointments.', false);
+//             }
+//         }
+
+//         function renderAppointments(appointments, container) {
+//             container.innerHTML = '';
+//             appointments.forEach(app => {
+//                 const date = new Date(app.appointment_date).toLocaleDateString();
+//                 const doctorId = app.doctor_id ? app.doctor_id._id : 'unknown';
+//                 const appointmentId = app._id;
+//                 const card = document.createElement('div');
+//                 const deleteButton = document.createElement('div');
+//                 card.className = 'p-4 bg-white border border-gray-200 rounded-lg shadow-sm';
+//                 card.innerHTML = `
+//                 <a href="/patient/doctor-details/${doctorId}">
+//                     <h3 class="text-lg font-bold">Dr. ${app.doctor_id.firstName} ${app.doctor_id.lastName}</h3>
+//                     <p class="text-gray-600">Date: ${date} at ${app.timeSlot}</p>
+//                     <p class="text-sm font-semibold text-indigo-500 capitalize">Status: ${app.status}</p>
+//                     </a>
+//                 `;
+//                 deleteButton.className = 'mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600';
+//                 deleteButton.innerHTML = `
+             
+//                 <a href="/patient/delete-appointment/${appointmentId}">
+//                     <div>
+//                     Cancel Appointment
+//                     </div>
+//                     </a>
+//                 `;
+//                 container.appendChild(card);
+//                 container.appendChild(deleteButton);
+//             });
+//         }
+         -->
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', fetchAppointments);
+
+    const displayStatus = (message, isSuccess) => {
+        const statusDiv = document.getElementById('status-message');
+        if (!statusDiv) return;
+        statusDiv.textContent = message;
+        statusDiv.className = `font-medium mb-4 p-3 rounded-md ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+    };
+
+    // 1. Function that performs DELETE and handles redirection
+    async function cancelAppointment(appointmentId) {
+        if (!confirm("Are you sure you want to cancel this appointment?")) {
+            return;
+        }
+        
+        displayStatus('Cancelling appointment...', false); 
+
+        try {
+            const response = await fetch(`/patient/delete-appointment/${appointmentId}`, { 
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            });
+console.log('Response from cancellation:', response);
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                displayStatus(result.message || 'Appointment cancelled successfully!', true);
+                
+                // *** THIS IS THE CRITICAL LOGIC ***
+                if (result.redirectUrl) {
+                    // This command tells the browser to navigate to the new URL
+                    window.location.replace(result.redirectUrl);
+                } else {
+                    fetchAppointments(); 
+                }
+
+            } else {
+                displayStatus(result.message || 'Failed to cancel appointment.', false);
+            }
+
+        } catch (error) {
+            console.error('Cancellation error:', error);
+            displayStatus('A network error occurred while cancelling the appointment.', false);
+        }
+    }
+
+    // 2. Function to fetch appointments
+    async function fetchAppointments() {
+        const container = document.getElementById('appointments-container');
+        displayStatus('Loading appointments...', false);
+
+        try {
+            const response = await fetch('/api/patient/my-appointments', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const result = await response.json();
+
+            if (response.ok && result.success && result.data) {
+                if (result.data.length === 0) {
+                    document.getElementById('no-appointments').classList.remove('hidden');
+                    displayStatus('All clear! You have no upcoming appointments.', true);
+                } else {
+                    renderAppointments(result.data, container);
+                    displayStatus(`Found ${result.data.length} appointments.`, true);
+                }
+            } else {
+                displayStatus(`Error: ${result.message || 'Could not fetch appointments.'}`, false);
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            displayStatus('A network error occurred while loading appointments.', false);
+        }
+    }
+
+    // 3. FIXED: Renders a BUTTON and attaches the JavaScript event handler
+    function renderAppointments(appointments, container) {
+    container.innerHTML = '';
+    
+    // 💡 FIX: Safely retrieve and hide the 'no appointments' message
+    const noAppointmentsEl = document.getElementById('no-appointments');
+    if (noAppointmentsEl) {
+        noAppointmentsEl.classList.add('hidden');
+    }
+    
+    appointments.forEach(app => {
+        const date = new Date(app.appointment_date).toLocaleDateString();
+        // Use Optional Chaining for safer access
+        const doctorId = app.doctor_id?._id || 'unknown'; 
+        const doctorName = app.doctor_id ? `Dr. ${app.doctor_id.firstName} ${app.doctor_id.lastName}` : 'Doctor Unavailable';
+        const appointmentId = app._id; 
+
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'p-4 bg-white border border-gray-200 rounded-lg shadow-md flex justify-between items-center';
+        
+        cardWrapper.innerHTML = `
+            <div>
+                <a href="/patient/doctor-details/${doctorId}" class="block">
+                    <h3 class="text-lg font-bold">${doctorName}</h3>
+                    <p class="text-gray-600">Date: ${date} at ${app.timeSlot}</p>
+                    <p class="text-sm font-semibold text-indigo-500 capitalize">Status: ${app.status || 'Scheduled'}</p>
+                </a>
+            </div>
+            
+            <button 
+                id="cancel-btn-${appointmentId}"
+                class="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition duration-150 ease-in-out shadow-md"
+            >
+                Cancel Appointment
+            </button>
+        `;
+        
+        container.appendChild(cardWrapper);
+
+        // Attach the event listener to the button
+        const button = document.getElementById(`cancel-btn-${appointmentId}`);
+        button.addEventListener('click', () => {
+            cancelAppointment(appointmentId); 
+        });
+    });
+}
+
+            // Attaches the click event listener to the button
+            // const button = document.getElementById(`cancel-btn-${appointmentId}`);
+            // button.addEventListener('click', () => {
+            //     cancelAppointment(appointmentId); // Calls the function that handles the redirect
+            // });
+    //     });
+    // }
+</script>
+</body>
+
+</html>

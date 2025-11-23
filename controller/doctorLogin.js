@@ -1,5 +1,5 @@
 
-
+import  jwt  from "jsonwebtoken";
 import { doctor } from "../mongoose modules/doctormodule.js";
 
 export const doctorLoginAuth = async (req, res, next) => {
@@ -8,7 +8,7 @@ export const doctorLoginAuth = async (req, res, next) => {
     if (!medical_licence_number || !password) {
         return res.status(400).json({ success: false, message: "License number and password are required." });
     }
-
+console.log(medical_licence_number,password)
     try {
         // 1. Find the doctor by medical license number
         // NOTE: If you save the password with {select: false} in the schema, you must use .select("+password") here.
@@ -27,12 +27,27 @@ export const doctorLoginAuth = async (req, res, next) => {
 
         // 3. Generate a new token upon successful login
         const accessToken = foundDoctor.generateDoctorAccessToken();
-
+         const payload = { 
+                    _id: foundDoctor._id, 
+                     user_type: foundDoctor.user_type 
+                };
+                
+                const token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+                res.clearCookie('accessToken');
+                res.clearCookie('doctorAccessToken');
+                // Set the JWT cookie (using secure: false for localhost HTTP testing)
+                res.cookie('doctorAccessToken', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production' ? true : false, 
+                    sameSite: 'Lax', 
+                    path: '/', 
+                    maxAge: 60 * 60 * 1000 // 1 hour
+                });
         // 4. Success response (200 OK)
         return res.status(200).json({
             success: true,
             message: `Welcome back, Dr. ${foundDoctor.lastName}!`,
-            accessToken
+            redirectUrl:"/doctor"
         });
 
     } catch (error) {

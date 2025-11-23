@@ -10,7 +10,7 @@ export const doctorDetails = async (req, res, next) => {
     const experience_years = parseInt(req.body.experience_years);
     const clinic_address = req.body.clinic_address;
     const consultancyFee = parseInt(req.body.consultancyFee);
-    const phone = parseInt(req.body.phone);
+    const phone = (req.body.phone);
     const password = (req.body.password);
     console.log(req.body);
 
@@ -23,7 +23,7 @@ export const doctorDetails = async (req, res, next) => {
     if (missingStringField || invalidNumberField) {
         return res.status(400).json({
             success: false,
-            message: "all fields are required nott"
+            message: "all fields are required "
         });
     }
     try {
@@ -53,10 +53,19 @@ export const doctorDetails = async (req, res, next) => {
         newDoctor.user_type = "doctor";
         await newDoctor.save();
         const accessToken = newDoctor.generateDoctorAccessToken();
+        res.cookie('doctorAccessToken', accessToken, {
+            httpOnly: true,
+            // Adjust secure based on development environment
+            secure: process.env.NODE_ENV === 'production' ? true : false, 
+            sameSite: 'Lax', 
+            path: '/', 
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
         return res.status(201).json({
             success: true,
             message: "doctor registration successful",
-            accessToken: accessToken
+            // accessToken: accessToken,
+            redirectUrl:"/doctor"
         })
 
     }

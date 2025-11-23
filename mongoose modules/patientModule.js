@@ -2,11 +2,7 @@ import mongoose from "mongoose";
 
 const patientSchema = mongoose.Schema({
 
-    user_id:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"user",
-        required:true
-    },
+   
     firstName:{
         type:String,
         required:true
@@ -21,19 +17,43 @@ const patientSchema = mongoose.Schema({
     },
     gender:{
         type:String,
-        required:true
+        required:true,
+        enum: ['Male', 'Female', 'Other']
     },
     phone_number:{
         type:Number,
-        required:true
+        required:true,
+        unique:true
     },
     address:{
         type:String
     },
     emergency_contact_no:{
-        type:Number,
-        default: 102
+        type:Number
     },
+    profile_complete:{
+        type:String,
+        enum:["yes","no"],
+        default:"no"
+    },
+    email:{
+        type:String,
+        required:true,
+        unique:true
+    },
+    reason:{
+        type:String,
+        required:true
+    },
+    medicalHistory:{
+        type:String,
+        required:true
+    },
+    user_type: {
+    type: String,
+    enum: ["Patient", "Doctor"],
+    default: "Patient"
+  }
 
 },{timestamps:true})
 

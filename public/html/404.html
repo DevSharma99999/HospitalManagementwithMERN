@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 | Page Not Found</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
+    <div class="text-center p-10 bg-gray-800 rounded-xl shadow-2xl border border-red-500/50">
+
+        <!-- Large Error Code -->
+        <div class="text-9xl font-extrabold text-red-500 mb-4">
+            404
+        </div>
+
+        <!-- Main Message -->
+        <h1 class="text-4xl font-bold text-gray-100 mb-3">
+            Invalid Link! Page Not Found.
+        </h1>
+
+        <!-- Subtext -->
+        <p class="text-xl text-gray-400 mb-8">
+            The resource you requested could not be located.
+        </p>
+
+        <!-- Call to Action -->
+        <a href="/"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+            Go to Homepage
+        </a>
+    </div>
+</body>
+<script src="../js/client.js"></script>
+</html>

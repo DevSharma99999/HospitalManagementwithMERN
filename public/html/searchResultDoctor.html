@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Search Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        .result-card {
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-indigo-700 mb-8 text-center">Doctor Search Results</h1>
+
+        <div id="results-container" class="space-y-6">
+            <p id="loading-message" class="text-center text-gray-500 text-lg">Processing search results...</p>
+        </div>
+    </div>
+
+    <script>
+        // Client-side script to read and display the injected data
+        document.addEventListener('DOMContentLoaded', displayResults);
+
+        /**
+         * Reads the DOCTOR_DATA global variable and renders the results.
+         */
+        function displayResults() {
+            const container = document.getElementById('results-container');
+            const loadingMessage = document.getElementById('loading-message');
+
+            // 💡 STEP 1: Read the global variable injected by the server
+            // We use '|| []' to ensure it defaults to an empty array if the injection failed.
+            const doctorData = window.DOCTOR_DATA || [];
+
+            // Clear the initial message
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+
+            if (doctorData.length > 0) {
+                doctorData.forEach(doctor => {
+                    // Extract specialty name safely, accounting for Mongoose population
+                    const specialtyName = doctor.specialistID ? doctor.specialistID.name : doctor.specialistIN || 'N/A';
+
+                    const card = document.createElement('div');
+                    card.className = 'result-card bg-white p-6 rounded-xl shadow-lg border border-gray-200';
+
+                    card.innerHTML = `
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">${doctor.firstName} ${doctor.lastName}</h2>
+                        
+                        <div class="space-y-1 text-gray-700">
+                            <p>Specialty: <strong class="text-indigo-600">${specialtyName}</strong></p>
+                            <p>Qualifications: ${doctor.qualifications || 'N/A'}</p>
+                            <p>Experience: ${doctor.experience_years || 0} years</p>
+                            <p>Clinic Address: ${doctor.clinic_address || 'N/A'}</p>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                            <p class="text-xl font-extrabold text-green-700">Consultancy Fee: ₹${doctor.consultancyFee ? doctor.consultancyFee.toFixed(2) : 'N/A'}</p>
+                            <button class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150">
+                               <a href="/patient/book-appointment/${doctor._id}"> Book Appointment </a>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                container.innerHTML = '<p class="text-center text-xl text-red-500 p-6 bg-red-100 rounded-lg">Sorry, no doctors were found matching your search criteria.</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrition AI Suggester | Find Your Plan</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div
+        class="w-full max-w-lg bg-white p-8 md:p-10 rounded-2xl shadow-2xl border border-indigo-100 transform transition duration-500 hover:shadow-3xl">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-lime-600 tracking-tight" id="Welcome">
+                Nutrition AI Suggester
+            </h1>
+            <p class="mt-2 text-lg text-gray-500">
+                Generate a personalized 7-day nutrition plan instantly.
+            </p>
+        </header>
+
+        <!-- Form Section -->
+        <form action="/results" method="POST" class="space-y-6">
+            <div class="space-y-2">
+                <label for="health-problem" class="block text-sm font-medium text-gray-700">
+                    Enter your health goal or problem:
+                </label>
+                <input type="text" id="health-problem" name="healthProblem"
+                    placeholder="e.g., Managing cholesterol, improving gut health, weight loss" required
+                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out placeholder-gray-400 text-base">
+            </div>
+
+            <button type="submit"
+                class="w-full flex justify-center items-center px-6 py-3 border border-transparent text-lg font-semibold rounded-xl shadow-lg text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 transition duration-200 transform hover:scale-[1.01] active:scale-[0.99]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 2a1 1 0 011 1v1h4a1 1 0 010 2h-1.474l-.116 1.168 1.411.353a.5.5 0 01.357.484V14a2 2 0 01-2 2H7a2 2 0 01-2-2V8.955a.5.5 0 01.357-.484l1.411-.353-.116-1.168H5a1 1 0 010-2h4V3a1 1 0 011-1zm0 14h6V9.045l-1.64.41c-.492.123-1.004.184-1.527.184-1.127 0-2.222-.266-3.213-.778l-.133-.067c-.206-.104-.37-.21-.567-.31-.418-.21-.86-.418-1.302-.628l-.147-.074c-.206-.104-.41-.21-.616-.31H4v4a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V14z"
+                        clip-rule="evenodd" />
+                </svg>
+                Get Nutrition Suggestions
+            </button>
+        </form>
+
+        <footer class="mt-8 pt-4 border-t border-gray-100 text-center">
+            <p class="text-xs text-gray-400">Powered by Gemini AI - Disclaimer: This is a suggestion tool and not
+                medical advice. Consult a doctor for a professional diagnosis.</p>
+        </footer> 
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Booking Summary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+    <div class="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-green-100">
+
+        <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-green-700">Appointments Summary</h1>
+            <div class="flex space-x-3">
+                <a href="/doctor/dashboard"
+                    class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition shadow-md">
+                    Manage Schedule
+                </a>
+                <button id="logout-button"
+                    class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition shadow-md">
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <div id="booking-status-message" class="text-center font-medium mb-4">Loading bookings...</div>
+
+        <div id="bookings-container" class="space-y-4">
+            <!-- Appointment cards will be injected here -->
+            <p id="no-bookings-message" class="text-gray-500 text-center hidden">You have no scheduled appointments.</p>
+        </div>
+
+    </div>
+
+    <!-- <script src="../js/client.js"></script>  -->
+
+    <script >
+        // ALL YOUR LOGIC MUST BE DEFINED IN THIS SECOND BLOCK
+
+        console.log("CLIENT START: Running fetchBookings!"); // THIS LOG MUST APPEAR NOW!
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchBookings();
+
+            // Re-add the logout logic safely
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton && typeof handleLogout === 'function') {
+                logoutButton.addEventListener('click', handleLogout);
+            }
+        });
+
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        };
+
+        const handleLogout = async () => { // 💡 ADDED THE MISSING LOGOUT FUNCTION
+    try {
+        const response = await fetch('/logout', {
+            method: 'POST',
+            credentials: 'include', // Necessary to send the cookie to be cleared
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            console.log(result.message);
+            
+            // 💡 Use location.replace to prevent going back to the authenticated page
+            window.location.replace("/");
+        } else {
+            alert(`Logout failed: ${result.message || 'Server error.'}`);
+        }
+    } catch (error) {
+        console.error('Network error during logout:', error);
+        alert('A network error prevented logout. Please try again.');
+    }
+};
+        const displayStatus = (message, isError = false) => {
+            const statusDiv = document.getElementById('booking-status-message');
+            if (!statusDiv) return;
+            statusDiv.textContent = message;
+            statusDiv.className = `p-3 rounded-md mb-4 ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        };
+        const createBookingCard = (booking) => {
+            const patient = booking.patient_id;
+            // CRITICAL: Ensure timeSlot and appointment_date are available and correctly formatted
+            const date = formatDate(booking.appointment_date);
+            const time = booking.timeSlot || 'TBD';
+            const patientName = patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown Patient';
+            const contact = patient ? patient.phone_number || 'No Phone' : 'N/A';
+            const statusClass = booking.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700';
+
+            return `
+    <a href="/doctor/patient-details/${booking._id}">
+        <div class="appointment-card flex justify-between items-center p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition">
+            <div class="flex-grow">
+                <p class="text-lg font-semibold text-gray-800">${patientName}</p>
+                <p class="text-sm text-gray-500">Contact: ${contact}</p>
+                <p class="text-sm text-gray-500">Booking ID: ${booking._id}</p>
+            </div>
+            <div class="text-right space-y-1">
+                <p class="text-md font-bold text-green-600">${time}</p>
+                <p class="text-sm text-gray-600">${date}</p>
+                <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}">
+                    ${booking.status.toUpperCase()}
+                </span>
+            </div>
+        </div>
+        </a>
+    `;
+        };
+
+        const renderBookings = (bookings) => {
+            const container = document.getElementById('bookings-container');
+            const noBookingsMsg = document.getElementById('no-bookings-message');
+
+            // Clear previous content
+            container.innerHTML = '';
+
+            if (bookings.length === 0) {
+                noBookingsMsg.classList.remove('hidden');
+                displayStatus('You have no appointments scheduled for today or later.', false);
+            } else {
+                noBookingsMsg.classList.add('hidden');
+                const bookingCards = bookings.map(createBookingCard).join('');
+                container.innerHTML = bookingCards;
+                displayStatus(`Showing ${bookings.length} appointment(s).`, false);
+            }
+        };
+
+        // --- Fetch and Display Bookings ---
+        async function fetchBookings() {
+            console.log("enter the booking sirrr1");
+            const container = document.getElementById('bookings-container');
+            const noBookingsMsg = document.getElementById('no-bookings-message');
+            displayStatus('Fetching current appointments...', false);
+
+            try {
+                console.log("enter the booking sirrr2 - Fetching API...");
+                const response = await fetch('/api/doctor/bookings', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                console.log("API Response Status:", response.status);
+
+                // Final check for data
+                if (response.ok && result.success && result.data && result.data.length > 0) {
+                    console.log(`Successfully fetched ${result.data.length} appointment(s).`);
+                    renderBookings(result.data);
+                    // ... rendering logic ...
+                } else {
+                    displayStatus(result.message || 'No upcoming appointments found.', false);
+                    noBookingsMsg.classList.remove('hidden');
+                    container.innerHTML = ''; // Clear container
+                }
+
+            } catch (error) {
+                console.error('Fetch bookings error:', error);
+                displayStatus('Network error while fetching bookings. Check server status.', true);
+                container.innerHTML = '';
+                noBookingsMsg.classList.remove('hidden');
+            }
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Search Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 💡 DATA INJECTION POINT (MANDATORY PLACEHOLDER) -->
+    <!-- The server replaces this line with the JSON data wrapped in a <script> tag. -->
+    <!-- DATA_INJECTION_POINT -->
+
+    <style>
+        .result-card {
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .form-toggle {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out;
+        }
+
+        .form-toggle.open {
+            max-height: 500px;
+            /* Large enough value to show content */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-indigo-700 mb-8 text-center">Doctor Search Results</h1>
+
+        <!-- Container where results will be dynamically inserted -->
+        <div id="results-container" class="space-y-6">
+            <p id="loading-message" class="text-center text-gray-500 text-lg">Processing search results...</p>
+        </div>
+
+        <div id="status-message" class="hidden"></div>
+    </div>
+
+    <script>
+        // --- Utility Functions ---
+
+        // Helper to format Date objects to YYYY-MM-DD for input fields
+        const getFormattedDate = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        // --- Booking Interaction ---
+
+        const toggleBookingForm = (doctorId) => {
+            const formContainer = document.getElementById(`booking-form-container-${doctorId}`);
+            if (formContainer) {
+                formContainer.classList.toggle('open');
+                const btn = document.querySelector(`button[onclick="toggleBookingForm('${doctorId}')"]`);
+                if (formContainer.classList.contains('open')) {
+                    btn.textContent = 'Cancel Booking';
+                } else {
+                    btn.textContent = 'Book Appointment';
+                }
+            }
+        };
+
+        const handleBooking = async (doctorId, event) => {
+            event.preventDefault();
+
+            const form = event.target;
+            const statusDiv = form.querySelector(`#form-status-${doctorId}`);
+
+            // Collect Form Data
+            const formData = new FormData(form);
+            const bookingDate = formData.get('appointment_date');
+            const timeSlot = formData.get('timeSlot');
+
+            // Basic Frontend Validation
+            if (!bookingDate || !timeSlot) {
+                statusDiv.textContent = 'Please select both a date and a time slot.';
+                statusDiv.className = 'text-red-500 mt-2';
+                return;
+            }
+
+            // Show Processing Status
+            statusDiv.textContent = 'Processing booking...';
+            statusDiv.className = 'text-indigo-500 mt-2';
+
+            try {
+                // Send POST request to the backend booking route
+                const response = await fetch('/api/appointments/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Send the accessToken cookie
+                    body: JSON.stringify({
+                        doctor_id: doctorId,
+                        appointment_date: bookingDate,
+                        timeSlot: timeSlot
+                        // patient_id is expected to be retrieved by the server middleware
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    statusDiv.textContent = `Success! Appointment scheduled for ${bookingDate}.`;
+                    statusDiv.className = 'text-green-600 font-semibold mt-2';
+                    // Optional: Hide form after successful booking
+                    toggleBookingForm(doctorId);
+                } else {
+                    statusDiv.textContent = `Failed: ${result.message || 'Slot unavailable or server error.'}`;
+                    statusDiv.className = 'text-red-600 font-semibold mt-2';
+                }
+            } catch (error) {
+                console.error('Network Error during booking:', error);
+                statusDiv.textContent = 'A network error occurred. Check server connection.';
+                statusDiv.className = 'text-red-600 mt-2';
+            }
+        };
+
+        // --- Display Logic ---
+
+        function displayResults() {
+            const container = document.getElementById('results-container');
+            const loadingMessage = document.getElementById('loading-message');
+
+            // 💡 STEP 1: Read the global variable injected by the server
+            const doctorData = window.DOCTOR_DATA || [];
+
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+
+            if (doctorData.length > 0) {
+                doctorData.forEach(doctor => {
+                    // Extract specialty name safely, accounting for Mongoose population
+                    const specialtyName = doctor.specialistID ? doctor.specialistID.name : doctor.specialistIN || 'N/A';
+                    const doctorId = doctor._id;
+                    const minDate = getFormattedDate(new Date());
+
+                    const card = document.createElement('div');
+                    card.className = 'result-card bg-white p-6 rounded-xl shadow-lg border border-gray-200';
+
+                    card.innerHTML = `
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">${doctor.firstName} ${doctor.lastName}</h2>
+                        
+                        <div class="space-y-1 text-gray-700 mb-4">
+                            <p>Specialty: <strong class="text-indigo-600">${specialtyName}</strong></p>
+                            <p>Qualifications: ${doctor.qualifications || 'N/A'}</p>
+                            <p>Experience: ${doctor.experience_years || 0} years</p>
+                            <p>Consultancy Fee: <span class="font-extrabold text-green-700">₹${doctor.consultancyFee ? doctor.consultancyFee.toFixed(2) : 'N/A'}</span></p>
+                            <p class="text-sm text-gray-500">Clinic: ${doctor.clinic_address || 'N/A'}</p>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100 flex justify-end">
+                            <a href="/patient/book-appointment/${doctorId}"  
+                                class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md">
+                                Book Appointment
+                            </a>
+                        </div>
+
+                        <!-- Booking Form Section -->
+                        // <div id="booking-form-container-${doctorId}" class="form-toggle pt-4 border-t border-gray-100 mt-4">
+                        //     <form onsubmit="handleBooking('${doctorId}', event)" class="space-y-4 bg-indigo-50 p-4 rounded-lg">
+                        //         <h3 class="text-lg font-semibold text-indigo-700">Select Date & Time</h3>
+                                
+                        //         <div>
+                        //             <label class="block text-sm font-medium text-gray-700">Appointment Date</label>
+                        //             <input type="date" name="appointment_date" required min="${minDate}"
+                        //                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        //         </div>
+                                
+                        //         <div>
+                        //             <label class="block text-sm font-medium text-gray-700">Time Slot</label>
+                        //             <select name="timeSlot" required
+                        //                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        //                 <option value="" disabled selected>-- Select Time --</option>
+                        //                 <option value="09:00-10:00">09:00 AM - 10:00 AM</option>
+                        //                 <option value="10:00-11:00">10:00 AM - 11:00 AM</option>
+                        //                 <option value="11:00-12:00">11:00 AM - 12:00 PM</option>
+                        //                 <option value="03:00-04:00">03:00 PM - 04:00 PM</option>
+                        //                 <option value="04:00-05:00">04:00 PM - 05:00 PM</option>
+                        //                 <option value="05:00-06:00">05:00 PM - 06:00 PM</option>
+                        //             </select>
+                        //         </div>
+                                
+                        //         <button type="submit" 
+                        //             class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-150">
+                        //             Confirm Booking!
+                        //         </button>
+                                
+                        //         <div id="form-status-${doctorId}" class="text-sm text-center"></div>
+                        //     </form>
+                        // </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                container.innerHTML = '<p class="text-center text-xl text-red-500 p-6 bg-red-100 rounded-lg">Sorry, no doctors were found matching your criteria.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', displayResults);
+    </script>
+</body>
+
+</html>

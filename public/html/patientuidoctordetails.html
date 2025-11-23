@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-teal-100">
+
+        <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-teal-700" id="doctor-name-header">Doctor Details</h1>
+            <a href="/patient/appointments"
+                class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition shadow-md">
+                &larr; Back to Appointments
+            </a>
+        </header>
+
+        <div id="loading-message" class="text-center p-4 bg-yellow-100 text-yellow-700 rounded-lg">Loading doctor information...</div>
+        <div id="error-message" class="hidden text-center p-4 bg-red-100 text-red-700 rounded-lg"></div>
+
+        <div id="details-container" class="hidden space-y-6">
+            
+            <section class="p-6 border border-teal-200 rounded-lg bg-teal-50">
+                <h2 class="text-xl font-semibold text-teal-600 mb-4 border-b pb-2">Professional Profile</h2>
+                <div class="grid grid-cols-2 gap-4 text-gray-700">
+                    <div><span class="font-medium">Specialist In:</span> <span id="doctor-specialty"></span></div>
+                    <div><span class="font-medium">Qualifications:</span> <span id="doctor-qualifications"></span></div>
+                    <div><span class="font-medium">Experience:</span> <span id="doctor-experience"></span> years</div>
+                    <div><span class="font-medium">License No:</span> <span id="doctor-license"></span></div>
+                </div>
+            </section>
+
+            <section class="p-6 border border-gray-300 rounded-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Location & Fees</h2>
+                <div class="space-y-3 text-gray-700">
+                    <p class="text-lg"><span class="font-bold text-green-600">Consultation Fee:</span> <span id="doctor-fee" class="text-xl"></span></p>
+                    <p><span class="font-medium">Clinic Address:</span> <span id="doctor-address"></span></p>
+                    <p><span class="font-medium">Contact Phone:</span> <span id="doctor-phone"></span></p>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchDoctorDetails);
+
+        const displayStatus = (message, isError = false) => {
+            const statusDiv = isError ? document.getElementById('error-message') : document.getElementById('loading-message');
+            if (!statusDiv) return;
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('hidden');
+            if (!isError) {
+                document.getElementById('error-message').classList.add('hidden');
+            } else {
+                document.getElementById('loading-message').classList.add('hidden');
+                document.getElementById('details-container').classList.add('hidden');
+            }
+        };
+
+        const renderDetails = (data) => {
+            document.getElementById('loading-message').classList.add('hidden');
+            document.getElementById('details-container').classList.remove('hidden');
+
+            // Header
+            document.getElementById('doctor-name-header').textContent = `Dr. ${data.firstName} ${data.lastName}`;
+
+            // Professional Profile
+            document.getElementById('doctor-specialty').textContent = data.specialistIN || 'N/A';
+            document.getElementById('doctor-qualifications').textContent = data.qualifications || 'N/A';
+            document.getElementById('doctor-experience').textContent = data.experience_years || '0';
+            document.getElementById('doctor-license').textContent = data.medical_licence_number || 'N/A';
+            
+            // Location & Fees
+            document.getElementById('doctor-fee').textContent = `Rs. ${data.consultancyFee || 'N/A'}`;
+            document.getElementById('doctor-address').textContent = data.clinic_address || 'N/A';
+            document.getElementById('doctor-phone').textContent = data.phone || 'N/A';
+        };
+
+        async function fetchDoctorDetails() {
+            // Extract doctorId from URL: /patient/doctor-details/:doctorId
+            const pathSegments = window.location.pathname.split('/');
+            const doctorId = pathSegments[pathSegments.length - 1];
+
+            if (!doctorId || doctorId.length !== 24) { 
+                return displayStatus("Invalid Doctor ID in URL.", true);
+            }
+
+            try {
+                // Call the API endpoint
+                const apiUrl = `/api/patient/doctor-details/${doctorId}`; 
+                const response = await fetch(apiUrl, { credentials: 'include' });
+                const result = await response.json();
+
+                if (response.ok && result.success && result.data) {
+                    renderDetails(result.data);
+                } else {
+                    displayStatus(result.message || 'Failed to load doctor details.', true);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayStatus('Network error. Could not connect to the server.', true);
+            }
+        }
+    </script>
+</body>
+</html>

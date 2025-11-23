@@ -20,9 +20,10 @@ const appointmentSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    reason_of_visit: {
+    timeSlot:  {
         type: String,
-        required: true
+        enum:["09:00-10:00","10:00-11:00","11:00-12:00","13:00-14:00","14:00-15:00","15:00-16:00"],
+        default:"09:00-10:00"
     },
     status: {
         type: String,

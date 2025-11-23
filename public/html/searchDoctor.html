@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50 flex items-start justify-center p-6 sm:p-10">
+
+    <div class="w-full max-w-xl bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-indigo-100 mt-10">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Find Your Specialist</h2>
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-4xl font-extrabold text-indigo-700">Welcome Back</h2>
+            <!-- Logout Button (Hidden/shown via client.js depending on auth status) -->
+            <button id="logout-button" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                Logout
+            </button>
+        </div>
+        <!-- Form action remains the same -->
+        <form action="/doctor-search" method="get" class="flex flex-col sm:flex-row gap-4">
+
+            <!-- Search Input -->
+            <input name="query" type="text" placeholder="Search by specialty (e.g., Cardiology) or Doctor name" required
+                class="flex-grow w-full sm:w-auto px-4 py-3 border-2 border-gray-300 rounded-lg shadow-inner focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-200 text-base">
+
+            <!-- Submit Button -->
+            <button type="submit"
+                class="w-full sm:w-32 flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                Search
+            </button>
+        </form>
+
+        <p class="text-xs text-gray-500 mt-4 text-center">Example: heart doctor, Dr. Smith, or Neurology.</p>
+    </div>
+
+</body>
+<script src="../js/client.js"></script>
+
+</html>

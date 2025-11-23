@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Appointment Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-blue-100">
+
+        <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-blue-700" id="header-title">Appointment Details</h1>
+            <a href="/doctor/schedule-summary"
+                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition shadow-md">
+                &larr; Back to Bookings
+            </a>
+        </header>
+
+        <div id="loading-message" class="text-center p-4 bg-yellow-100 text-yellow-700 rounded-lg">Loading patient
+            data...</div>
+        <div id="error-message" class="hidden text-center p-4 bg-red-100 text-red-700 rounded-lg"></div>
+
+        <div id="details-container" class="hidden space-y-8">
+
+            <section class="p-6 border border-blue-200 rounded-lg bg-blue-50">
+                <h2 class="text-xl font-semibold text-blue-600 mb-4 border-b pb-2">Appointment Information</h2>
+                <div class="grid grid-cols-2 gap-4 text-gray-700">
+                    <div><span class="font-medium">Date:</span> <span id="appt-date"></span></div>
+                    <div><span class="font-medium">Time:</span> <span id="appt-time"></span></div>
+                    <div><span class="font-medium">Status:</span> <span id="appt-status" class="font-bold"></span></div>
+                    <div><span class="font-medium">Reason:</span> <span id="appt-reason">N/A</span></div>
+                </div>
+            </section>
+
+            <section class="p-6 border border-green-200 rounded-lg bg-green-50">
+                <h2 class="text-xl font-semibold text-green-600 mb-4 border-b pb-2">Patient Profile</h2>
+                <div class="grid grid-cols-2 gap-4 text-gray-700">
+                    <div><span class="font-medium">Name:</span> <span id="patient-name"></span></div>
+                    <div><span class="font-medium">DOB:</span> <span id="patient-dob"></span></div>
+                    <div><span class="font-medium">Gender:</span> <span id="patient-gender"></span></div>
+                    <div><span class="font-medium">Phone:</span> <span id="patient-phone"></span></div>
+                    <div><span class="font-medium">Emergency Contact:</span> <span id="patient-emergency"></span></div>
+                    <div><span class="font-medium">Address:</span> <span id="patient-address"></span></div>
+
+                    <div class="col-span-2 text-sm text-red-500 mt-2">
+                        Note: Email and Medical History fields are not present on the current 'patient' schema.
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    <script >
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAppointmentDetails();
+        });
+
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            // Ensure only the date part is used if dateString includes time
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', options);
+        };
+
+        const displayError = (message) => {
+            document.getElementById('loading-message').classList.add('hidden');
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        };
+
+        const renderDetails = (data) => {
+            const patient = data.patient_id;
+
+            // 1. Update Header
+            document.getElementById('header-title').textContent = `Appointment for ${patient.firstName} ${patient.lastName}`;
+
+            // 2. Hide loading, show container
+            document.getElementById('loading-message').classList.add('hidden');
+            document.getElementById('details-container').classList.remove('hidden');
+
+            // 3. Render Appointment Info
+            document.getElementById('appt-date').textContent = formatDate(data.appointment_date);
+            document.getElementById('appt-time').textContent = data.timeSlot || 'Not Specified';
+            document.getElementById('appt-status').textContent = (data.status || 'Unknown').toUpperCase();
+            document.getElementById('appt-reason').textContent = data.reasonForAppointment || 'N/A';
+
+            // 4. Render Patient Details (Using schema keys: dob, phone_number, emergency_contact_no)
+            document.getElementById('patient-name').textContent = `${patient.firstName} ${patient.lastName}`;
+
+            // FIX: Using patient.dob (Date of Birth)
+            document.getElementById('patient-dob').textContent = patient.dob ? formatDate(patient.dob) : 'N/A';
+
+            document.getElementById('patient-gender').textContent = patient.gender || 'N/A';
+            // Using phone_number from schema
+            document.getElementById('patient-phone').textContent = patient.phone_number || 'N/A';
+            // Using emergency_contact_no from schema
+            document.getElementById('patient-emergency').textContent = patient.emergency_contact_no || '102 (Default)';
+            document.getElementById('patient-address').textContent = patient.address || 'N/A';
+
+            // Removed separate sections for Email and Medical History as they are not on the patient schema.
+        };
+
+        async function fetchAppointmentDetails() {
+            // Get bookingId from URL: /doctor/patient-details/bookingId
+            const pathSegments = window.location.pathname.split('/');
+            const bookingId = pathSegments[pathSegments.length - 1];
+            console.log(bookingId, "boookingid");
+            if (!bookingId || bookingId.length !== 24) {
+                return displayError("Invalid Appointment ID in URL.");
+            }
+
+            try {
+                // Matches your new API route
+                const apiUrl = `/api/doctor/patient-details/${bookingId}`;
+                const response = await fetch(apiUrl, { credentials: 'include' });
+                const result = await response.json();
+
+                if (response.ok && result.success && result.data) {
+                    renderDetails(result.data);
+                } else {
+                    displayError(result.message || 'Failed to load appointment details.');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayError('Network error. Could not connect to the server.');
+            }
+        }
+    </script>
+</body>
+
+</html>

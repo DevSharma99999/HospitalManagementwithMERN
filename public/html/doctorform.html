@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom styling for the status messages to ensure they look good */
+        .status-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .success-message {
+            color: #065F46;
+            /* text-green-700 */
+            background-color: #D1FAE5;
+            /* bg-green-100 */
+        }
+
+        .error-message {
+            color: #991B1B;
+            /* text-red-700 */
+            background-color: #FEE2E2;
+            /* bg-red-100 */
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white p-8 rounded-xl shadow-2xl border border-indigo-100">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Doctor Registration</h2>
+        <p class="text-sm text-gray-500 mb-8 text-center">Please fill out your professional details to complete your
+            profile.</p>
+
+        <!-- Form action remains the same: /doctor-register-form -->
+        <form id="doctor-reg-form" action="/doctor-register-form" method="post" class="space-y-6">
+
+            <!-- Dynamic Status Message Container -->
+            <div id="status-message" class="status-message hidden"></div>
+
+            <!-- Name and License Group -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <!-- First Name -->
+                <div>
+                    <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="First Name" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Last Name" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <!-- Medical License Number -->
+                <div>
+                    <label for="medical_licence_number" class="block text-sm font-medium text-gray-700">Medical License
+                        No.</label>
+                    <input type="text" id="medical_licence_number" name="medical_licence_number"
+                        placeholder="License Number" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+            </div>
+
+            <!-- Specialty and Qualifications Group -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- Select Specialty -->
+                <div>
+                    <label for="specialty" class="block text-sm font-medium text-gray-700">Select Specialty</label>
+                    <select id="specialty" name="specialistIN" required
+    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white transition duration-150">
+    
+    <option value="" disabled selected>-- Choose a specialty --</option>
+    
+    <option value="Cardiology">Cardiology</option>
+    <option value="Dermatology">Dermatology</option>
+    <option value="Pediatrics">Pediatrics</option>
+    <option value="Orthopedics">Orthopedics</option>
+    <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+    <option value="General Physician">General Physician</option>
+    
+</select>
+                </div>
+
+                <!-- Qualifications -->
+                <div>
+                    <label for="qualifications" class="block text-sm font-medium text-gray-700">Qualifications (e.g.,
+                        MD, Ph.D.)</label>
+                    <input type="text" id="qualifications" name="qualifications" placeholder="Qualifications" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+            </div>
+
+            <!-- Experience and Fee Group -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- Experience Years -->
+                <div>
+                    <label for="experience_years" class="block text-sm font-medium text-gray-700">Experience
+                        (Years)</label>
+                    <input type="number" id="experience_years" name="experience_years" placeholder="Years of Experience"
+                        required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <!-- Consultancy Fee -->
+                <div>
+                    <label for="consultancyFee" class="block text-sm font-medium text-gray-700">Consultancy Fee (in
+                        rupees)</label>
+                    <input type="number" id="consultancyFee" name="consultancyFee" placeholder="Fee Amount" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+            </div>
+
+            <!-- Contact and Address Group -->
+            <div class="space-y-4">
+                <!-- Clinic Address -->
+                <div>
+                    <label for="clinic_address" class="block text-sm font-medium text-gray-700">Clinic Address</label>
+                    <input type="text" id="clinic_address" name="clinic_address" placeholder="Full Clinic Address"
+                        required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <!-- Phone and Password -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Phone -->
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="Phone Number" required
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Secure Password" required
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="submit-btn" type="submit"
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                Register Doctor
+            </button>
+        </form>
+    </div>
+
+    <!-- START OF INLINE SCRIPT -->
+    <script>
+        // Helper function to extract form data into a plain object
+        const serializeForm = (form) => {
+            const formData = new FormData(form);
+            const data = {};
+            for (const [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            return data;
+        };
+
+        // Helper function to display status messages
+        const displayStatus = (element, message, isSuccess) => {
+            element.textContent = message;
+            element.classList.remove('hidden');
+            element.classList.remove(isSuccess ? 'error-message' : 'success-message');
+            element.classList.add(isSuccess ? 'success-message' : 'error-message');
+        };
+
+        const handleSubmit = async (event) => {
+            event.preventDefault(); // Stop the default browser form submission
+            console.log("Form submission intercepted by JavaScript."); // Browser Console Check
+
+            const form = event.target;
+            const formData = serializeForm(form);
+            const formAction = form.getAttribute('action');
+            const statusContainer = document.getElementById('status-message');
+            const submitButton = document.getElementById('submit-btn');
+
+            // Set initial processing state
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processing...';
+            displayStatus(statusContainer, 'Processing registration...', false);
+
+            try {
+                const response = await fetch(formAction, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // Important for sending cookies
+                    body: JSON.stringify(formData),
+                });
+
+                // Server should always return JSON, but handle parse error just in case
+                const result = await response.json();
+
+                const isSuccess = response.ok && result.success;
+
+                if (isSuccess) {
+                    // Success: Display success message and initiate redirect
+                    displayStatus(statusContainer, result.message, true);
+                    console.log("Registration successful. Redirecting in 1.5 seconds.");
+
+                    if (result.redirectUrl) {
+                        setTimeout(() => {
+                            // 🎯 THE REDIRECT FIX
+                            window.location.replace(result.redirectUrl);
+                        }, 1500); // 1.5 second delay for user to read success message
+                    }
+                } else {
+                    // Failure: Display error message
+                    displayStatus(statusContainer, `Error: ${result.message || 'Operation failed due to server error.'}`, false);
+                }
+            } catch (error) {
+                console.error('Network or critical server error:', error);
+                displayStatus(statusContainer, 'A critical network error occurred.', false);
+            } finally {
+                // Reset button state after operation fails or before successful redirect
+                if (!statusContainer.textContent.includes('success')) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Register Doctor';
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const doctorRegForm = document.getElementById('doctor-reg-form');
+            if (doctorRegForm) {
+                // Attach the handler using the form's ID
+                doctorRegForm.addEventListener('submit', handleSubmit);
+                console.log("Doctor Registration Form listener attached.");
+            }
+        });
+    </script>
+    <!-- END OF INLINE SCRIPT -->
+</body>
+
+</html>
