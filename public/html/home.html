@@ -220,33 +220,33 @@
         // Initialize icons on page load
         lucide.createIcons();
 
-        // --- DYNAMIC LLM FETCH LOGIC ---
-        const factContainer = document.getElementById('dynamic-health-fact');
-        const apiKey = "AIzaSyBYUzsnXPEDZZU_d8pTs_KZFL9QrL8PCyc"; // API key is provided by the environment
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        // // --- DYNAMIC LLM FETCH LOGIC ---
+        // const factContainer = document.getElementById('dynamic-health-fact');
+        // const apiKey = "AIzaSyBYUzsnXPEDZZU_d8pTs_KZFL9QrL8PCyc"; // API key is provided by the environment
+        // const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
-        // Helper function for exponential backoff (crucial for API stability)
-        async function fetchWithBackoff(url, options, maxRetries = 5, delay = 1000) {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.status === 429 && i < maxRetries - 1) {
-                        console.warn(`Rate limit hit (429). Retrying in ${delay * (2 ** i)}ms...`);
-                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
-                        continue;
-                    }
-                    if (!response.ok) {
-                        // Throw non-retriable errors immediately, including the status code
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response;
-                } catch (error) {
-                    if (i === maxRetries - 1) throw error;
-                    // Log connection errors but don't stop retry loop
-                    await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
-                }
-            }
-        }
+        // // Helper function for exponential backoff (crucial for API stability)
+        // async function fetchWithBackoff(url, options, maxRetries = 5, delay = 1000) {
+        //     for (let i = 0; i < maxRetries; i++) {
+        //         try {
+        //             const response = await fetch(url, options);
+        //             if (response.status === 429 && i < maxRetries - 1) {
+        //                 console.warn(`Rate limit hit (429). Retrying in ${delay * (2 ** i)}ms...`);
+        //                 await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+        //                 continue;
+        //             }
+        //             if (!response.ok) {
+        //                 // Throw non-retriable errors immediately, including the status code
+        //                 throw new Error(`HTTP error! status: ${response.status}`);
+        //             }
+        //             return response;
+        //         } catch (error) {
+        //             if (i === maxRetries - 1) throw error;
+        //             // Log connection errors but don't stop retry loop
+        //             await new Promise(resolve => setTimeout(resolve, delay * (2 ** i)));
+        //         }
+        //     }
+        // }
 
         function renderFact(text, sources, container) {
             let sourceHtml = '';
@@ -295,67 +295,97 @@
             `;
             lucide.createIcons(); // Re-initialize icons after DOM update
         }
-
         async function fetchHealthFact() {
-            // Show loading state
-            factContainer.innerHTML = '<span class="text-indigo-500 flex items-center text-lg font-medium"><i data-lucide="loader-circle" class="w-6 h-6 mr-3 animate-spin-custom"></i> Loading today\'s health insight...</span>';
-            lucide.createIcons();
+    // Show loading state
+    factContainer.innerHTML = '<span class="text-indigo-500 flex items-center text-lg font-medium"><i data-lucide="loader-circle" class="w-6 h-6 mr-3 animate-spin-custom"></i> Loading today\'s health insight...</span>';
+    lucide.createIcons();
 
-            const systemPrompt = "You are a friendly, authoritative health and nutrition advisor. Provide one concise, actionable health or food fact for the day. Format your response by clearly bolding the title (2-5 words) followed by a short, simple paragraph of 1-2 sentences. Do not use Markdown headings like # or ##.";
-            const userQuery = "Give me one current, interesting fact about diet, exercise, or general wellness. Ensure the response is authoritative and based on current web results.";
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                // CRITICAL: Enable Google Search for grounded, current facts
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                },
-            };
-
-            const options = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            };
-
-            try {
-                const response = await fetchWithBackoff(apiUrl, options);
-                const result = await response.json();
-
-                const candidate = result.candidates?.[0];
-                let factText = "Could not generate fact. Try refreshing the page.";
-                let sources = [];
-
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    factText = candidate.content.parts[0].text;
-
-                    const groundingMetadata = candidate.groundingMetadata;
-                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                        sources = groundingMetadata.groundingAttributions
-                            .map(attribution => ({
-                                uri: attribution.web?.uri,
-                                title: attribution.web?.title,
-                            }))
-                            .filter(source => source.uri && source.title);
-                    }
-                }
-
-                renderFact(factText, sources, factContainer);
-
-            } catch (error) {
-                console.error("Gemini API Request Failed:", error.message);
-                factContainer.innerHTML = `
-                    <div class="max-w-3xl mx-auto p-5 bg-red-50 rounded-xl border-l-4 border-red-500">
-                        <p class="text-red-700 flex items-center font-medium">
-                            <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i> 
-                            API Connection Failed (403 Forbidden). Please check your API key's validity and permissions.
-                        </p>
-                    </div>
-                `;
-                lucide.createIcons();
-            }
+    try {
+        // CALL YOUR BACKEND ROUTE HERE (No Google API key needed in HTML)
+        const response = await fetch('/ai/daily-insight'); 
+        
+        if (!response.ok) {
+            throw new Error(`Server status: ${response.status}`);
         }
+
+        const data = await response.json();
+
+        // Render the result from Express
+        renderFact(data.fact, [], factContainer);
+
+    } catch (error) {
+        console.error("Fetch Failed:", error.message);
+        factContainer.innerHTML = `
+            <div class="max-w-3xl mx-auto p-5 bg-red-50 rounded-xl border-l-4 border-red-500">
+                <p class="text-red-700 flex items-center font-medium">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i> 
+                    Could not load daily insight. Please check server logs.
+                </p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+}
+        // async function fetchHealthFact() {
+        //     // Show loading state
+        //     factContainer.innerHTML = '<span class="text-indigo-500 flex items-center text-lg font-medium"><i data-lucide="loader-circle" class="w-6 h-6 mr-3 animate-spin-custom"></i> Loading today\'s health insight...</span>';
+        //     lucide.createIcons();
+
+        //     const systemPrompt = "You are a friendly, authoritative health and nutrition advisor. Provide one concise, actionable health or food fact for the day. Format your response by clearly bolding the title (2-5 words) followed by a short, simple paragraph of 1-2 sentences. Do not use Markdown headings like # or ##.";
+        //     const userQuery = "Give me one current, interesting fact about diet, exercise, or general wellness. Ensure the response is authoritative and based on current web results.";
+
+        //     const payload = {
+        //         contents: [{ parts: [{ text: userQuery }] }],
+        //         // CRITICAL: Enable Google Search for grounded, current facts
+        //         tools: [{ "google_search": {} }],
+        //         systemInstruction: {
+        //             parts: [{ text: systemPrompt }]
+        //         },
+        //     };
+
+        //     const options = {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify(payload)
+        //     };
+
+        //     try {
+        //         const response = await fetchWithBackoff(apiUrl, options);
+        //         const result = await response.json();
+
+        //         const candidate = result.candidates?.[0];
+        //         let factText = "Could not generate fact. Try refreshing the page.";
+        //         let sources = [];
+
+        //         if (candidate && candidate.content?.parts?.[0]?.text) {
+        //             factText = candidate.content.parts[0].text;
+
+        //             const groundingMetadata = candidate.groundingMetadata;
+        //             if (groundingMetadata && groundingMetadata.groundingAttributions) {
+        //                 sources = groundingMetadata.groundingAttributions
+        //                     .map(attribution => ({
+        //                         uri: attribution.web?.uri,
+        //                         title: attribution.web?.title,
+        //                     }))
+        //                     .filter(source => source.uri && source.title);
+        //             }
+        //         }
+
+        //         renderFact(factText, sources, factContainer);
+
+        //     } catch (error) {
+        //         console.error("Gemini API Request Failed:", error.message);
+        //         factContainer.innerHTML = `
+        //             <div class="max-w-3xl mx-auto p-5 bg-red-50 rounded-xl border-l-4 border-red-500">
+        //                 <p class="text-red-700 flex items-center font-medium">
+        //                     <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i> 
+        //                     API Connection Failed (403 Forbidden). Please check your API key's validity and permissions.
+        //                 </p>
+        //             </div>
+        //         `;
+        //         lucide.createIcons();
+        //     }
+        // }
 
         // Run the fetch function when the page content is loaded
         document.addEventListener('DOMContentLoaded', fetchHealthFact);
