@@ -6,30 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Appointment | Doctor Schedule</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
-        /* Highlight booked slots */
         .slot-booked {
             background-color: #fca5a5;
-            /* Red-300 */
             color: #b91c1c;
-            /* Red-700 */
             cursor: not-allowed;
             opacity: 0.7;
         }
-
-        /* Highlight available slots */
+        .slot-buffer {
+            background-color: #fde68a;
+            color: #92400e;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         .slot-available {
             background-color: #a7f3d0;
-            /* Green-200 */
             color: #065f46;
-            /* Green-700 */
             cursor: pointer;
             transition: background-color 0.2s;
         }
-
         .slot-available:hover {
             background-color: #6ee7b7;
-            /* Green-300 */
+        }
+        .slot-na {
+            background-color: #f9fafb;
+            color: #9ca3af;
+            cursor: default;
+        }
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px;
+        }
+        #hold-timer-bar {
+            transition: width 1s linear;
         }
     </style>
 </head>
@@ -38,46 +47,83 @@
 
     <div class="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-green-100">
 
-        <header class="mb-8 pb-4 border-b border-gray-200">
+        <header class="mb-6 pb-4 border-b border-gray-200">
             <h1 class="text-3xl font-extrabold text-green-700">Book Appointment</h1>
             <p id="doctor-name" class="text-xl text-gray-600 mt-1">Schedule for Doctor...</p>
         </header>
+
+        <div class="flex flex-wrap gap-4 mb-4 text-sm text-gray-600">
+            <span><span class="legend-dot" style="background:#a7f3d0"></span>Available</span>
+            <span><span class="legend-dot" style="background:#fca5a5"></span>Booked</span>
+            <span><span class="legend-dot" style="background:#fde68a"></span>Buffer gap</span>
+            <span><span class="legend-dot" style="background:#f9fafb;border:1px solid #e5e7eb"></span>Not offered</span>
+        </div>
 
         <div id="status-message" class="text-center font-medium mb-4 p-3 rounded-md bg-indigo-100 text-indigo-700">
             Loading doctor's weekly availability...
         </div>
 
-        <div id="schedule-container" class="space-y-6">
+        <div id="schedule-container" class="space-y-6"></div>
+
+        <!-- Reason-for-visit modal -->
+        <div id="reason-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-semibold text-gray-800 mb-1">Confirm Your Appointment</h3>
+                <p id="reason-modal-subtitle" class="text-sm text-gray-500 mb-4"></p>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Reason for visit</label>
+                <textarea id="reason-input" rows="3" placeholder="e.g. Follow-up consultation, chest pain, routine checkup..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"></textarea>
+                <div class="flex gap-3 mt-5">
+                    <button id="reason-cancel-btn" onclick="closeReasonModal()"
+                        class="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                    <button id="reason-continue-btn" onclick="confirmBookingFromModal()"
+                        class="flex-1 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition">Continue to Payment</button>
+                </div>
+            </div>
         </div>
 
-        <form id="booking-form" style="display: none;">
-            <input type="hidden" name="doctorId" id="booking-doctor-id">
-            <input type="hidden" name="appointmentDate" id="booking-date">
-            <input type="hidden" name="timeSlot" id="booking-slot">
-        </form>
+        <!-- Hold / payment-in-progress modal -->
+        <div id="payment-hold-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md text-center">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Slot Held For You</h3>
+                <p class="text-sm text-gray-500 mb-4">Complete payment before the hold expires or this slot will be released.</p>
+
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                    <div id="hold-timer-bar" class="bg-amber-500 h-2.5 rounded-full" style="width: 100%"></div>
+                </div>
+                <p id="hold-timer-text" class="text-2xl font-bold text-amber-600 mb-4">10:00</p>
+
+                <button id="proceed-payment-btn" onclick="openRazorpayCheckout()"
+                    class="w-full py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition mb-2">
+                    Proceed to Payment
+                </button>
+                <button onclick="cancelHoldAndClose()"
+                    class="w-full py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
 
     </div>
 
     <script>
-        // Maps day number (1-7, where 1 is Monday) to name
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        let pendingBooking = null;
+        let activeHold = null;
+        let holdCountdownInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Extract Doctor ID from the current URL
             const pathSegments = window.location.pathname.split('/');
-            // Assumes URL is /patient/book-appointment/DOCTOR_ID
             const doctorId = pathSegments[pathSegments.length - 1];
 
             if (doctorId && doctorId.length > 10) {
-                document.getElementById('booking-doctor-id').value = doctorId;
+                window.currentDoctorId = doctorId;
                 fetchDoctorSchedule(doctorId);
             } else {
                 displayStatus('Error: Doctor ID not found in the URL.', false);
                 document.getElementById('schedule-container').innerHTML = '';
             }
         });
-
-        // --- Utility Functions ---
 
         const displayStatus = (message, isSuccess) => {
             const statusDiv = document.getElementById('status-message');
@@ -86,20 +132,14 @@
             statusDiv.className = `font-medium mb-4 p-3 rounded-md ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
         };
 
-        // Helper to convert Date object to YYYY-MM-DD string
         const toYYYYMMDD = (date) => date.toISOString().split('T')[0];
-
-        // --- Fetch and Render Schedule ---
 
         async function fetchDoctorSchedule(id) {
             try {
-                // Fetch the schedule (availability + existing bookings)
-                // You MUST create this server route: GET /api/patient/schedule/weekly/:doctorId
                 const response = await fetch(`/api/patient/schedule/weekly/${id}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
-
                 const result = await response.json();
 
                 if (response.ok && result.success && result.data) {
@@ -109,18 +149,18 @@
                 } else {
                     displayStatus(`Failed to load schedule: ${result.message || 'No schedule defined for this doctor.'}`, false);
                 }
-
             } catch (error) {
                 console.error("Error fetching schedule:", error);
                 displayStatus('Network error while fetching schedule. Check server status.', false);
             }
         }
+
         const timeToMinutes = (timeString) => {
-            // Example: timeString is "09:00-10:00"
-            const start = timeString.split('-')[0]; // Gets "09:00"
+            const start = timeString.split('-')[0];
             const [hours, minutes] = start.split(':').map(Number);
             return hours * 60 + minutes;
         };
+
         function renderWeeklySchedule(schedule) {
             const container = document.getElementById('schedule-container');
             container.innerHTML = '';
@@ -130,16 +170,16 @@
                 return;
             }
 
-            const timeSlots = Array.from(new Set(schedule.map(s => s.timeSlot))).sort((a, b) => {
-                // Compare 'a' against 'b' based on their starting time in minutes
+            const timeSlots = Array.from(new Set(schedule.map(s => s.timeSlot)))
+                .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
 
-                const assumetime1 = timeToMinutes(a)
-                const assumetime2 = timeToMinutes(b)
-                if (assumetime1 < 9) assumetime1 = assumetime1 + 12;
-                if (assumetime2 < 9) assumetime2 = assumetime2 + 12;
-                return assumetime1 - assumetime2;
-            });
-            // console.log(timeSlots,"timeSlots");
+            const today = new Date();
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                weekDates.push(date);
+            }
 
             let tableHTML = `
                 <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
@@ -147,37 +187,19 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Slot</th>
             `;
-
-            // Add day headers
-            const today = new Date();
-            const weekDates = [];
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
-                weekDates.push(date);
+            weekDates.forEach(date => {
                 tableHTML += `<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">${dayNames[date.getDay()]} ${date.getDate()}/${date.getMonth() + 1}</th>`;
-            }
+            });
+            tableHTML += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
 
-            tableHTML += `
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-            `;
-
-            // Add rows for each time slot
             timeSlots.forEach(slot => {
                 tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${slot}</td>`;
 
                 weekDates.forEach(date => {
                     const dateString = toYYYYMMDD(date);
-                    const dayNum = date.getDay().toString(); // 0 for Sun, 1 for Mon, matches Mongoose day value (assuming your Mongoose schema uses 0-6 or 1-7)
+                    const entry = schedule.find(s => s.date === dateString && s.timeSlot === slot);
 
-                    // Find the matching schedule entry
-                    const entry = schedule.find(s =>
-                        s.date === dateString && s.timeSlot === slot
-                    );
-                        console.log("this is entry :",entry,"and schedule",schedule);
-                    let cellClass = 'bg-gray-50 text-gray-400 cursor-default';
+                    let cellClass = 'slot-na';
                     let cellContent = 'N/A';
                     let onClick = '';
 
@@ -185,15 +207,18 @@
                         if (entry.status === 'booked') {
                             cellClass = 'slot-booked';
                             cellContent = 'Booked';
+                        } else if (entry.status === 'buffer-blocked') {
+                            cellClass = 'slot-buffer';
+                            cellContent = 'Buffer';
                         } else if (entry.status === 'available') {
                             cellClass = 'slot-available';
                             cellContent = 'Available';
-                            onClick = `bookSlot('${dateString}', '${slot}')`;
+                            onClick = `openReasonModal('${dateString}', '${slot}')`;
                         }
                     }
 
                     tableHTML += `
-                        <td class="px-2 py-2 text-center text-sm border-l border-r ${cellClass}" 
+                        <td class="px-2 py-2 text-center text-sm border-l border-r ${cellClass}"
                             onclick="${onClick}">
                             ${cellContent}
                         </td>
@@ -203,69 +228,194 @@
                 tableHTML += `</tr>`;
             });
 
-            tableHTML += `
-                    </tbody>
-                </table>
-            `;
-
+            tableHTML += `</tbody></table>`;
             container.innerHTML = tableHTML;
         }
 
-        // --- Booking Submission Handler ---
-
-        function bookSlot(date, slot) {
-            if (!confirm(`Confirm booking for ${date} at ${slot}?`)) {
-                return;
-            }
-
-            const doctorId = document.getElementById('booking-doctor-id').value;
-            document.getElementById('booking-date').value = date;
-            document.getElementById('booking-slot').value = slot;
-
-            displayStatus('Initiating booking...', false);
-
-            // Use the hidden form inputs to prepare the data
-            const bookingData = {
-                doctor_id: doctorId,
-                appointment_date: date,
-                timeSlot: slot
-            };
-
-            // Post to your appointment creation route
-            submitBooking(bookingData);
+        function openReasonModal(date, slot) {
+            pendingBooking = { date, slot };
+            document.getElementById('reason-modal-subtitle').textContent = `${date} at ${slot}`;
+            document.getElementById('reason-input').value = '';
+            showModal('reason-modal');
         }
 
-        async function submitBooking(data) {
+        function closeReasonModal() {
+            pendingBooking = null;
+            hideModal('reason-modal');
+        }
+
+        async function confirmBookingFromModal() {
+            if (!pendingBooking) return;
+            const reason = document.getElementById('reason-input').value.trim();
+            const continueBtn = document.getElementById('reason-continue-btn');
+            continueBtn.disabled = true;
+            continueBtn.textContent = 'Holding slot...';
+
             try {
-                // You must create this server route: POST /api/appointments/book
-                const response = await fetch('/api/appointments/book', {
+                const response = await fetch('/api/appointments/initiate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify(data),
+                    body: JSON.stringify({
+                        doctor_id: window.currentDoctorId,
+                        appointment_date: pendingBooking.date,
+                        timeSlot: pendingBooking.slot,
+                        reason: reason
+                    })
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    displayStatus(`Booking confirmed! ${result.message}`, true);
-                    // Optional: Update the schedule table instantly or refresh the page
-                    // fetchDoctorSchedule(data.doctor_id); 
-
-                    // Redirect to patient's appointments summary page
-                    if (result.redirectUrl) {
-                        setTimeout(() => {
-                            window.location.replace(result.redirectUrl);
-                        }, 2000);
-                    }
-
+                    activeHold = {
+                        appointmentDbId: result.appointment_db_id,
+                        appointmentId: result.appointment_id,
+                        razorpayOrder: result.razorpayOrder,
+                        holdExpiresAt: new Date(result.holdExpiresAt)
+                    };
+                    closeReasonModal();
+                    showModal('payment-hold-modal');
+                    startHoldCountdown();
                 } else {
-                    displayStatus(`Booking failed: ${result.message || 'Slot is no longer available.'}`, false);
+                    displayStatus(`Could not hold slot: ${result.message || 'Please try a different slot.'}`, false);
+                    closeReasonModal();
+                    fetchDoctorSchedule(window.currentDoctorId);
                 }
             } catch (error) {
-                console.error('Booking submission error:', error);
-                displayStatus('A network error occurred during booking.', false);
+                console.error('Error initiating booking:', error);
+                displayStatus('Network error while holding the slot.', false);
+            } finally {
+                continueBtn.disabled = false;
+                continueBtn.textContent = 'Continue to Payment';
             }
+        }
+
+        function startHoldCountdown() {
+            if (holdCountdownInterval) clearInterval(holdCountdownInterval);
+
+            const totalMs = activeHold.holdExpiresAt.getTime() - Date.now();
+            const totalSeconds = Math.max(0, Math.floor(totalMs / 1000));
+
+            updateHoldTimerDisplay(totalSeconds, totalSeconds);
+
+            holdCountdownInterval = setInterval(() => {
+                const remainingMs = activeHold.holdExpiresAt.getTime() - Date.now();
+                const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+
+                updateHoldTimerDisplay(remainingSeconds, totalSeconds);
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(holdCountdownInterval);
+                    handleHoldExpired();
+                }
+            }, 1000);
+        }
+
+        function updateHoldTimerDisplay(remainingSeconds, totalSeconds) {
+            const mins = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+            const secs = (remainingSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('hold-timer-text').textContent = `${mins}:${secs}`;
+
+            const pct = totalSeconds > 0 ? (remainingSeconds / totalSeconds) * 100 : 0;
+            document.getElementById('hold-timer-bar').style.width = `${pct}%`;
+
+            const bar = document.getElementById('hold-timer-bar');
+            const text = document.getElementById('hold-timer-text');
+            if (remainingSeconds <= 120) {
+                bar.classList.remove('bg-amber-500');
+                bar.classList.add('bg-red-500');
+                text.classList.remove('text-amber-600');
+                text.classList.add('text-red-600');
+            }
+        }
+
+        function handleHoldExpired() {
+            hideModal('payment-hold-modal');
+            activeHold = null;
+            displayStatus('Your slot hold expired. Please select a slot again.', false);
+            fetchDoctorSchedule(window.currentDoctorId);
+        }
+
+        function cancelHoldAndClose() {
+            if (holdCountdownInterval) clearInterval(holdCountdownInterval);
+            hideModal('payment-hold-modal');
+            activeHold = null;
+            fetchDoctorSchedule(window.currentDoctorId);
+        }
+
+        function openRazorpayCheckout() {
+            if (!activeHold) return;
+
+            const options = {
+                key: activeHold.razorpayOrder.keyId,
+                amount: activeHold.razorpayOrder.amount,
+                currency: activeHold.razorpayOrder.currency,
+                name: "Appointment Payment",
+                description: `Booking #${activeHold.appointmentId}`,
+                order_id: activeHold.razorpayOrder.orderId,
+                handler: function (paymentResponse) {
+                    verifyPaymentAndConfirm(paymentResponse);
+                },
+                modal: {
+                    ondismiss: function () {
+                        console.log('Razorpay checkout dismissed by user.');
+                    }
+                },
+                theme: { color: "#4f46e5" }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                displayStatus(`Payment failed: ${response.error.description || 'Please try again.'}`, false);
+            });
+            rzp.open();
+        }
+
+        async function verifyPaymentAndConfirm(paymentResponse) {
+            if (holdCountdownInterval) clearInterval(holdCountdownInterval);
+
+            try {
+                const response = await fetch('/api/appointments/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        appointment_db_id: activeHold.appointmentDbId,
+                        razorpay_order_id: paymentResponse.razorpay_order_id,
+                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                        razorpay_signature: paymentResponse.razorpay_signature
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    hideModal('payment-hold-modal');
+                    displayStatus(`Payment successful! ${result.message}`, true);
+                    if (result.redirectUrl) {
+                        setTimeout(() => window.location.replace(result.redirectUrl), 2000);
+                    }
+                } else {
+                    displayStatus(`Payment verification failed: ${result.message || 'Please contact support.'}`, false);
+                }
+            } catch (error) {
+                console.error('Error verifying payment:', error);
+                displayStatus('Network error while verifying payment. If money was deducted, contact support with your payment ID.', false);
+            } finally {
+                activeHold = null;
+            }
+        }
+
+        function showModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     </script>
 </body>

@@ -1,61 +1,57 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv'; // Assuming you use dotenv for environment variables
+// File: utils/emailsSender.js
 
-dotenv.config();
+import { sendTransactionalEmail } from "./brevoMailer.js";
 
-// 1. Configure the Transporter (Using a service like Gmail or SendGrid/Mailgun SMTP)
-const transporter = nodemailer.createTransport({
-    // Example using Gmail (You need to set up an App Password for security)
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,    // Your email address (e.g., 'mybookingapp@gmail.com')
-        pass: process.env.EMAIL_PASS     // The generated App Password or service password
-    },
-    // If using a custom SMTP server, provide host, port, and security settings.
-});
-
-// 2. Email Sending Function
 export const sendBookingConfirmationEmail = async (patientEmail, appointmentDetails, patientName, doctorName, consultancyFee) => {
-
-    // Format the date for the email
     const apptDate = new Date(appointmentDetails.appointment_date).toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     const apptTime = appointmentDetails.timeSlot;
     const bookingId = appointmentDetails._id;
-    console.log("hi in the email");
-    // 3. Define the email content
-    const mailOptions = {
-        from: `Your Clinic <${process.env.EMAIL_USER}>`,
-        to: patientEmail,
-        subject: 'Appointment Confirmed! 🎉',
-        html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-                <h2 style="color: #10B981;">Hello ${patientName},</h2>
-                <p>Your appointment has been successfully scheduled with your doctor!</p>
-                <p>Here are your appointment details:</p>
-                <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 10px;"><strong>Booking ID:</strong> ${bookingId}</li>
-                    <li style="margin-bottom: 10px;"><strong>Date:</strong> ${apptDate}</li>
-                    <li style="margin-bottom: 10px;"><strong>Time Slot:</strong> ${apptTime}</li>
-                    <li style="margin-bottom: 10px;"><strong>Doctor:</strong> ${doctorName}</li>
-                    <li style="margin-bottom: 10px;"><strong>consultancy Fees:</strong> ${consultancyFee}</li>
-                </ul>
-                <p style="margin-top: 20px;">Please arrive 15 minutes early for your appointment.</p>
-                <p>Thank you for choosing our service.</p>
-            </div>
-        `,
-        // Note: You should also include a 'text' version for accessibility and fallback
-    };
 
-    // 4. Send the email
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Email successfully sent to ${patientEmail}`);
-        return { success: true };
-    } catch (error) {
-        console.error(`Error sending email to ${patientEmail}:`, error);
-        // It's usually okay to proceed with the booking success even if the email fails
-        return { success: false, error: error.message };
-    }
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2 style="color: #10B981;">Hello ${patientName},</h2>
+            <p>Your appointment has been successfully scheduled with your doctor!</p>
+            <p>Here are your appointment details:</p>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 10px;"><strong>Booking ID:</strong> ${bookingId}</li>
+                <li style="margin-bottom: 10px;"><strong>Date:</strong> ${apptDate}</li>
+                <li style="margin-bottom: 10px;"><strong>Time Slot:</strong> ${apptTime}</li>
+                <li style="margin-bottom: 10px;"><strong>Doctor:</strong> ${doctorName}</li>
+                <li style="margin-bottom: 10px;"><strong>Consultancy Fees:</strong> ₹${consultancyFee}</li>
+            </ul>
+            <p style="margin-top: 20px;">Please arrive 15 minutes early for your appointment.</p>
+            <p>Thank you for choosing our service.</p>
+        </div>
+    `;
+
+    return await sendTransactionalEmail({
+        toEmail: patientEmail,
+        toName: patientName,
+        subject: "Appointment Confirmed! 🎉",
+        htmlContent
+    });
+};
+
+export const sendPasswordResetEmail = async (recipientEmail, recipientName, resetLink) => {
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2 style="color: #4f46e5;">Hello ${recipientName},</h2>
+            <p>We received a request to reset your password. Click the button below to choose a new one:</p>
+            <p style="margin: 24px 0;">
+                <a href="${resetLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Reset Password
+                </a>
+            </p>
+            <p style="color: #6b7280; font-size: 14px;">This link will expire in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+        </div>
+    `;
+
+    return await sendTransactionalEmail({
+        toEmail: recipientEmail,
+        toName: recipientName,
+        subject: "Reset Your Password",
+        htmlContent
+    });
 };

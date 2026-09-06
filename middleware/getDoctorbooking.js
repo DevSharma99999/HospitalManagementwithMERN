@@ -42,7 +42,7 @@ export const getDoctorBookings = async (req, res) => {
             bookings.forEach(booking => {
     // CRITICAL CHECK: Does the patient object exist, and is phone_number present?
     if (!booking.patient_id || !booking.patient_id.phone_number) {
-        console.error("Patient details or phone number is missing for a booking!");
+        console.error("Patient details is missing for a booking!");
     }
 });
 console.log("buy");

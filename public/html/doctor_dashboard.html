@@ -14,7 +14,13 @@
 <body class="min-h-screen bg-gray-100 p-8">
 
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2">🩺 Doctor Dashboard</h1>
+        <div class="flex justify-between items-center mb-6 border-b-2 pb-2">
+            <h1 class="text-4xl font-extrabold text-gray-900">🩺 Doctor Dashboard</h1>
+            <button id="logout-button"
+                class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition shadow-md">
+                Logout
+            </button>
+        </div>
         <p class="text-lg text-gray-600 mb-8">Welcome, Doctor. Choose an action below:</p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -38,9 +44,27 @@
             </a>
         </div>
 
-       
     </div>
 
+    <script>
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    window.location.replace('/');
+                } else {
+                    alert(`Logout failed: ${result.message || 'Server error.'}`);
+                }
+            } catch (error) {
+                console.error('Network error during logout:', error);
+                alert('A network error prevented logout. Please try again.');
+            }
+        });
+    </script>
 </body>
 
 </html>

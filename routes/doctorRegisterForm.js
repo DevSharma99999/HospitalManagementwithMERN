@@ -1,6 +1,6 @@
 import express from "express";
 import { doctorDetails } from "../controller/doctorRegisterController.js";
-import { forgotPassword } from "../controller/forgetPasswordController.js";
+import { forgotPassword } from "../controller/doctorForgotPasswordController.js";
 import { resetPassword } from "../controller/resetPasswordController.js";
 
 export const doctorform = express.Router();

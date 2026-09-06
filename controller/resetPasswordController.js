@@ -1,56 +1,41 @@
 import { doctor } from '../mongoose modules/doctormodule.js';
-import bcrypt from 'bcrypt';
-import { sendSMS } from '../utils/smsService.js';
-// Assuming you have a standard hashing setup (e.g., 10 salt rounds)
-const SALT_ROUNDS = 10; 
+import crypto from 'crypto';
+import { sendPasswordResetEmail } from '../utils/emailsSender.js';
 
 export const resetPassword = async (req, res, next) => {
-    // 1. Get the token from the URL query and the new password from the body
-    const { token } = req.query; // e.g., /reset-password?token=XYZ
-    const { newPassword } = req.body; 
+    const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Missing reset token or new password." 
+        return res.status(400).json({
+            success: false,
+            message: "Missing reset token or new password."
         });
+    }
+    if (newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
     }
 
     try {
-        // 2. Find the Doctor by Token AND ensure the token is not expired
-        const doctorgi = await doctor.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() } // $gt means 'greater than' (i.e., in the future)
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const foundDoctor = await doctor.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: new Date() }
         });
 
-        if (!doctorgi) {
-            // Token is invalid, expired, or doesn't match
-            return res.status(400).json({ 
-                success: false, 
-                message: "Password reset link is invalid or has expired. Please request a new one." 
+        if (!foundDoctor) {
+            return res.status(400).json({
+                success: false,
+                message: "Password reset link is invalid or has expired. Please request a new one."
             });
         }
-        
-        // --- SECURE PASSWORD UPDATE ---
-        
-        // 3. Hash the new password securely
-        // const salt = await bcrypt.genSalt(SALT_ROUNDS);
-        // const passwordHash = await bcrypt.hash(newPassword, salt);
 
-        // 4. Update the doctor's document
-        doctorgi.password = newPassword;
-        // CRUCIAL: Clear the token and expiration fields to prevent reuse
-        doctorgi.resetPasswordToken = undefined;
-        doctorgi.resetPasswordExpires = undefined;
+        // doctorSchema's pre("save") hook already hashes this — no manual bcrypt needed here
+        foundDoctor.password = newPassword;
+        foundDoctor.resetPasswordToken = undefined;
+        foundDoctor.resetPasswordExpires = undefined;
+        await foundDoctor.save();
 
-         await doctorgi.save();
-        
-        // 5. Send final confirmation (optional, but good practice)
-        const confirmationMessage = `Dear Dr., your password has been successfully reset.`;
-        const phone=`+91${doctorgi.phone}`;
-        await sendSMS(phone, confirmationMessage); 
-        
-        // 6. Success Response
         return res.status(200).json({
             success: true,
             message: "Password has been successfully updated. You can now log in with your new password.",
@@ -58,7 +43,7 @@ export const resetPassword = async (req, res, next) => {
         });
 
     } catch (error) {
-        console.error("Password Reset Error:", error);
+        console.error("Doctor Password Reset Error:", error);
         res.status(500).json({ success: false, message: "Internal server error during password update." });
     }
 };

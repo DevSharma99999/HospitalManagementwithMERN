@@ -1,10 +1,11 @@
-
 import { doctor } from '../mongoose modules/doctormodule.js';
 import { SpecilisationIN } from '../mongoose modules/SpecialistInmodel.js';
+
 export const doctorDetails = async (req, res, next) => {
     const firstName = req.body.firstName;
     const lastName = req.body.lastName;
     const medical_licence_number = req.body.medical_licence_number;
+    const email = req.body.email; // 🆕
     const specialistIN = req.body.specialistIN;
     const qualifications = req.body.qualifications;
     const experience_years = parseInt(req.body.experience_years);
@@ -14,10 +15,10 @@ export const doctorDetails = async (req, res, next) => {
     const password = (req.body.password);
     console.log(req.body);
 
-     const specialtyName = specialistIN; 
-   const missingStringField = !firstName || !lastName || !medical_licence_number || 
-                               !specialistIN || !qualifications || !clinic_address || !password;
-    
+    const specialtyName = specialistIN;
+    const missingStringField = !firstName || !lastName || !medical_licence_number ||
+                                !email || !specialistIN || !qualifications || !clinic_address || !password; // 🆕 email required
+
     const invalidNumberField = isNaN(experience_years) || isNaN(consultancyFee) || isNaN(phone);
 
     if (missingStringField || invalidNumberField) {
@@ -26,16 +27,20 @@ export const doctorDetails = async (req, res, next) => {
             message: "all fields are required "
         });
     }
+
     try {
-        const existingDoctor = await doctor.findOne({ medical_licence_number });
+        const existingDoctor = await doctor.findOne({
+            $or: [{ medical_licence_number }, { email: email.trim().toLowerCase() }]
+        });
         if (existingDoctor) {
             return res.status(409).json({
                 success: false,
-                message: "doctor have already register with these inputs"
+                message: "A doctor is already registered with this license number or email."
             });
         }
+
         const specialtyDocument = await SpecilisationIN.findOne({ name: specialtyName });
-          if (!specialtyDocument) {
+        if (!specialtyDocument) {
             return res.status(400).json({
                 success: false,
                 message: `Specialty '${specialistIN}' not found. Please choose a valid specialty.`
@@ -44,37 +49,35 @@ export const doctorDetails = async (req, res, next) => {
 
         const newDoctor = new doctor({
             firstName, lastName,
-            medical_licence_number, 
+            medical_licence_number,
+            email: email.trim().toLowerCase(), // 🆕
             specialistID: specialtyDocument._id,
             specialistIN, qualifications,
-            experience_years, clinic_address, consultancyFee, phone,password
+            experience_years, clinic_address, consultancyFee, phone, password
         });
-        console.log("hello");
         newDoctor.user_type = "doctor";
         await newDoctor.save();
+
         const accessToken = newDoctor.generateDoctorAccessToken();
         res.cookie('doctorAccessToken', accessToken, {
             httpOnly: true,
-            // Adjust secure based on development environment
-            secure: process.env.NODE_ENV === 'production' ? true : false, 
-            sameSite: 'Lax', 
-            path: '/', 
-            maxAge: 24 * 60 * 60 * 1000 // 1 day
+            secure: process.env.NODE_ENV === 'production' ? true : false,
+            sameSite: 'Lax',
+            path: '/',
+            maxAge: 24 * 60 * 60 * 1000
         });
+
         return res.status(201).json({
             success: true,
             message: "doctor registration successful",
-            // accessToken: accessToken,
-            redirectUrl:"/doctor"
-        })
+            redirectUrl: "/doctor"
+        });
 
-    }
-    catch (error) {
+    } catch (error) {
         console.error("Mongoose or Server Error while registering doctor:", error);
         return res.status(500).json({
             success: false,
             message: "server error in registeration of doctor"
         });
     }
-
-}
+};

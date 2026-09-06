@@ -1,15 +1,11 @@
-// import express from 'express';
-// import { Router } from "express";
-// import path from 'path'; 
-// import { fileURLToPath } from 'url';
+import express from "express";
+import { patientLoginAuth } from "../middleware/patientLogin.js";
+import { requestPasswordReset, resetPassword } from "../controller/forgotPasswordController.js";
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
+const router = express.Router();
 
+router.post("/api/patient/login", patientLoginAuth); // 🔧 adjust path to match your existing route if different
+router.post("/api/patient/forgot-password", requestPasswordReset);
+router.post("/api/patient/reset-password", resetPassword);
 
-// export const login= express.Router();
-// login.get("/login",(req,res,next)=>{
-//     console.log(req.url, req.method);
-//     res.sendFile(path.join(__dirname,'..','public','html','login.html'));
-// }
-// )
+export const patientAuthWay = router;

@@ -6,53 +6,51 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Simple in-memory cache
 let cachedFact = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
-// Fallback facts if API is rate-limited or quota is exceeded
 const fallbackFacts = [
   "**Stay Hydrated** Drinking adequate water boosts metabolic rate and supports optimal digestive function throughout the day.",
   "**Prioritize Sleep** Getting 7-9 hours of quality sleep enhances cognitive performance and strengthens immune system efficiency.",
   "**Daily Movement** Even a brisk 15-minute daily walk significantly lowers cardiovascular risks and improves mental clarity."
 ];
 
+// 🔧 Configurable via env var so a future model retirement is a dashboard
+// change, not a code change + redeploy. Defaults to the current model.
+const GEMINI_MODEL = process.env.GEMINI_MODEL_NAME || "gemini-1.5-turbo";
+
 export const getDailyInsightController = async (req, res) => {
   const currentTime = Date.now();
 
-  // 1. Return cached fact if it's still fresh (< 1 hour old)
   if (cachedFact && (currentTime - lastFetchTime < CACHE_DURATION)) {
     return res.json({ fact: cachedFact });
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.ai_key;
+    const apiKey = process.env.GEMINI_API_KEY ;
 
     if (!apiKey) {
-      // Fallback if key missing
       const randomFallback = fallbackFacts[Math.floor(Math.random() * fallbackFacts.length)];
       return res.json({ fact: randomFallback });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" }); // 1.5-flash-8b has higher free tier limits
-    
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+
     const prompt = "Give me one current, interesting fact about diet, exercise, or general wellness. Format your response by clearly bolding the title (2-5 words) followed by a short, simple paragraph of 1-2 sentences. Avoid markdown headings.";
 
     const result = await model.generateContent(prompt);
-    factText = result.response.text();
+    const factText = result.response.text();
 
-    // Store in cache
     cachedFact = factText;
     lastFetchTime = currentTime;
 
     res.json({ fact: factText });
 
   } catch (err) {
-    console.error("Gemini API Error / Quota Limit:", err.message || err);
+    console.error(`Gemini API Error (model: ${GEMINI_MODEL}):`, err.message || err);
 
-    // 2. If Rate-Limited (429) or Error, return cached fact or static fallback gracefully!
     if (cachedFact) {
       return res.json({ fact: cachedFact });
     }

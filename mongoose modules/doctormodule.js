@@ -57,6 +57,13 @@ const doctorSchema = new mongoose.Schema({
       type: String,
       default: "doctor"
    },
+   email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+   },
    password: {
       type: String,
       required: true,
